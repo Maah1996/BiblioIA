@@ -629,6 +629,13 @@ footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
               <textarea id="pdf-desc" rows="2" placeholder="Descripción breve del contenido..."></textarea>
             </div>
           </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label>URL del PDF en OneDrive (opcional)</label>
+              <input type="url" id="pdf-url" placeholder="https://1drv.ms/b/... (enlace compartido del PDF)">
+              <div style="font-size:11px;color:var(--text-g);margin-top:4px;">💡 Pega el enlace compartido de OneDrive. Se usará para abrir el PDF directo desde las citas de la IA.</div>
+            </div>
+          </div>
           <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleDrop(event)">
             <input type="file" id="file-input" accept=".pdf" style="display:none" onchange="handleFileSelect(event)">
             <div class="uz-icon">📄</div>
@@ -1112,6 +1119,7 @@ async function uploadPDF(){
   const nombre = document.getElementById('pdf-nombre').value.trim();
   const cat    = document.getElementById('pdf-categoria').value;
   const desc   = document.getElementById('pdf-desc').value.trim();
+  const urlPdf = document.getElementById('pdf-url').value.trim();
   if(!nombre){ showToast('Ingresa el nombre del documento.','red'); return; }
   if(!cat){ showToast('Selecciona una categoría.','red'); return; }
 
@@ -1144,6 +1152,7 @@ async function uploadPDF(){
       subidoPor: currentUser.email,
       texto: textos
     };
+    if(urlPdf) pdfData.urlPdf = urlPdf;
     await newRef.set(pdfData);
     setProgress(100,'¡Listo!');
 
@@ -1153,6 +1162,7 @@ async function uploadPDF(){
       document.getElementById('pdf-nombre').value='';
       document.getElementById('pdf-categoria').value='';
       document.getElementById('pdf-desc').value='';
+      document.getElementById('pdf-url').value='';
       btn.disabled=false; btn.textContent='⬆️ Procesar y subir PDF';
       document.getElementById('upload-progress').style.display='none';
       goTo('biblioteca-admin');
@@ -1252,18 +1262,22 @@ function loadMaterias(){
     return;
   }
   count.textContent = allMaterias.length;
-  el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;">` +
+  el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;">` +
     allMaterias.map(m=>{
       const pdfCount = allPdfs.filter(p=>p.categoria===m.nombre).length;
-      return `<div style="background:var(--bg);border-radius:var(--radius);padding:18px;border:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <span style="font-size:28px;">${m.icono||'📁'}</span>
-          <div>
-            <div style="font-size:14px;font-weight:700;color:var(--navy);">${m.nombre}</div>
-            <div style="font-size:11px;color:var(--text-g);">${pdfCount} documento${pdfCount!==1?'s':''}</div>
+      const activo = m.activo !== false; // undefined = activo por defecto
+      return `<div style="background:var(--bg);border-radius:var(--radius);padding:18px;border:2px solid ${activo?'var(--green)':'var(--border)'};display:flex;align-items:center;justify-content:space-between;gap:8px;">
+        <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
+          <span style="font-size:28px;flex-shrink:0;">${m.icono||'📁'}</span>
+          <div style="min-width:0;">
+            <div style="font-size:14px;font-weight:700;color:${activo?'var(--navy)':'var(--text-g)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.nombre}</div>
+            <div style="font-size:11px;color:var(--text-g);">${pdfCount} doc. · <span style="color:${activo?'var(--green)':'var(--red)'};font-weight:600;">${activo?'Visible':'Oculta'}</span></div>
           </div>
         </div>
-        <button class="btn-sm btn-red" onclick="eliminarMateria('${m.id}','${m.nombre}',${pdfCount})" style="padding:5px 10px;font-size:11px;">✕</button>
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          <button class="btn-sm ${activo?'btn-gray':'btn-green'}" onclick="toggleMateria('${m.id}',${activo})" style="padding:5px 10px;font-size:11px;" title="${activo?'Ocultar a usuarios':'Mostrar a usuarios'}">${activo?'⏸ Ocultar':'▶ Activar'}</button>
+          <button class="btn-sm btn-red" onclick="eliminarMateria('${m.id}','${m.nombre}',${pdfCount})" style="padding:5px 10px;font-size:11px;">✕</button>
+        </div>
       </div>`;
     }).join('') + '</div>';
 }
@@ -1275,7 +1289,7 @@ async function crearMateria(){
   if(allMaterias.find(m=>m.nombre.toLowerCase()===nombre.toLowerCase())){
     showToast('Ya existe una materia con ese nombre.','red'); return;
   }
-  await db.ref(`${DB_PATH}/materias`).push({ nombre, icono, fechaCreacion: new Date().toISOString() });
+  await db.ref(`${DB_PATH}/materias`).push({ nombre, icono, activo: true, fechaCreacion: new Date().toISOString() });
   document.getElementById('materia-nombre').value='';
   showToast(`Materia "${nombre}" creada ✓`,'green');
 }
@@ -1285,6 +1299,11 @@ async function eliminarMateria(id, nombre, pdfCount){
   if(!confirm(`¿Eliminar la materia "${nombre}"?`)) return;
   await db.ref(`${DB_PATH}/materias/${id}`).remove();
   showToast(`Materia eliminada.`,'green');
+}
+
+async function toggleMateria(id, activo){
+  await db.ref(`${DB_PATH}/materias/${id}/activo`).set(!activo);
+  showToast(!activo ? 'Carpeta activada — ahora es visible para usuarios ✓' : 'Carpeta oculta — los usuarios no la verán', !activo?'green':'');
 }
 
 // ══ USER LIBRARY ══════════════════════════════════════════
@@ -1297,11 +1316,12 @@ function loadUserLibrary(){
 
 function renderCarpetas(){
   const el = document.getElementById('lib-carpetas-grid');
-  if(!allMaterias.length){
+  const visibles = allMaterias.filter(m => m.activo !== false);
+  if(!visibles.length){
     el.innerHTML='<div class="empty-state" style="grid-column:1/-1;"><div class="es-icon">📂</div><p>No hay materias disponibles aún.</p></div>';
     return;
   }
-  el.innerHTML = allMaterias.map(m=>{
+  el.innerHTML = visibles.map(m=>{
     const pdfCount = allPdfs.filter(p=>p.categoria===m.nombre).length;
     return `<div onclick="abrirMateria('${m.nombre}')" style="background:#fff;border-radius:var(--radius);padding:28px 22px;border:1px solid var(--border);box-shadow:var(--shadow);cursor:pointer;transition:var(--tr);text-align:center;" onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='var(--shadow-l)';this.style.borderColor='var(--blue-l)'" onmouseleave="this.style.transform='';this.style.boxShadow='var(--shadow)';this.style.borderColor='var(--border)'">
       <div style="font-size:48px;margin-bottom:12px;">${m.icono||'📁'}</div>
@@ -1484,11 +1504,39 @@ async function buildContext(pdfIds){
   return ctx;
 }
 
+function formatAIResponse(text){
+  // Escapar HTML
+  let html = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  // Convertir saltos de línea
+  html = html.replace(/\n/g,'<br>');
+  // Convertir citas [Archivo: X | Página: Y] en links clickeables
+  html = html.replace(/\[Archivo:\s*([^\|]+?)\s*\|\s*Página:\s*(\d+)\]/g, (match, nombre, pagina) => {
+    const pdfNorm = nombre.trim().toLowerCase().replace(/\.pdf$/i,'');
+    const pdf = allPdfs.find(p => {
+      const pNorm = (p.nombre||'').trim().toLowerCase().replace(/\.pdf$/i,'');
+      return pNorm === pdfNorm || pNorm.includes(pdfNorm) || pdfNorm.includes(pNorm);
+    });
+    const safe = match.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>');
+    if(pdf && pdf.urlPdf){
+      const url = pdf.urlPdf;
+      return `<a href="${url}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;color:var(--blue);font-weight:600;text-decoration:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:1px 8px;font-size:12px;" title="Abrir PDF · Página ${pagina}">📄 ${escHtml(nombre.trim())} · Pág. ${pagina} ↗</a>`;
+    }
+    // Si no tiene URL, mostrar solo resaltado
+    return `<span style="display:inline-flex;align-items:center;gap:4px;color:var(--blue);font-weight:600;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:1px 8px;font-size:12px;">📄 ${escHtml(nombre.trim())} · Pág. ${pagina}</span>`;
+  });
+  return html;
+}
+function escHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
 function appendMessage(role, text){
   const messages = document.getElementById('chat-messages');
   const div = document.createElement('div');
   div.className = `msg msg-${role}`;
-  div.textContent = text;
+  if(role === 'ai'){
+    div.innerHTML = formatAIResponse(text);
+  } else {
+    div.textContent = text;
+  }
   messages.appendChild(div);
   messages.scrollTop = messages.scrollHeight;
   return div;
