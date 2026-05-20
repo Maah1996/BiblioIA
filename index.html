@@ -847,6 +847,22 @@ footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
+<!-- MODAL EDITAR URL PDF -->
+<div id="modal-url-pdf" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,22,40,.55);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;padding:32px;max-width:480px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.25);">
+    <div style="font-size:18px;font-weight:700;color:var(--navy);margin-bottom:6px;">🔗 URL del PDF</div>
+    <div style="font-size:13px;color:var(--text-g);margin-bottom:20px;" id="modal-url-nombre"></div>
+    <input type="hidden" id="modal-url-id">
+    <label style="font-size:12px;font-weight:600;color:var(--text-g);display:block;margin-bottom:6px;">Enlace de OneDrive (pega aquí el link compartido)</label>
+    <input type="url" id="modal-url-input" placeholder="https://1drv.ms/b/..." style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--radius-s);font-size:13px;font-family:inherit;outline:none;margin-bottom:8px;">
+    <div style="font-size:11px;color:var(--text-g);margin-bottom:24px;">Deja vacío para quitar el link. La cita de la IA mostrará 📄 nombre · Pág. X como chip clickeable.</div>
+    <div style="display:flex;gap:12px;justify-content:flex-end;">
+      <button onclick="document.getElementById('modal-url-pdf').style.display='none'" style="padding:10px 24px;border-radius:10px;border:1.5px solid var(--border);background:#fff;font-size:14px;font-weight:600;color:var(--text-g);cursor:pointer;">Cancelar</button>
+      <button onclick="guardarUrlPdf()" style="padding:10px 24px;border-radius:10px;border:none;background:var(--blue);color:#fff;font-size:14px;font-weight:700;cursor:pointer;">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL CONFIRMAR ELIMINACIÓN -->
 <div id="modal-confirm" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,22,40,.55);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;">
   <div style="background:#fff;border-radius:16px;padding:32px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.25);text-align:center;">
@@ -1216,15 +1232,18 @@ function loadAdminPdfs(){
     </div>
     <table class="data-table"><thead><tr>
       <th style="width:36px;"><input type="checkbox" class="row-cb" id="cb-head-pdfs" onchange="toggleAllPdfs(this.checked)" title="Seleccionar todos"></th>
-      <th>Documento</th><th>Categoría</th><th>Páginas</th><th>Subido</th><th>Acción</th>
+      <th>Documento</th><th>Categoría</th><th>Páginas</th><th>URL</th><th>Acciones</th>
     </tr></thead><tbody>
     ${allPdfs.map(p=>`<tr id="row-pdf-${p.id}" onclick="togglePdfRow('${p.id}',event)">
       <td><input type="checkbox" class="row-cb pdf-cb" id="cb-pdf-${p.id}" value="${p.id}" onchange="updatePdfBulkBar()" onclick="event.stopPropagation()"></td>
-      <td><div style="font-weight:600;color:var(--navy);">${p.nombre||'Sin nombre'}</div><div style="font-size:11px;color:var(--text-g);">${p.categoria||''}</div></td>
+      <td><div style="font-weight:600;color:var(--navy);">${p.nombre||'Sin nombre'}</div><div style="font-size:11px;color:var(--text-g);">${p.categoria||''} · ${p.paginas||'?'} pág.</div></td>
       <td><span class="badge badge-blue">${p.categoria||'—'}</span></td>
       <td>${p.paginas||'?'} pág.</td>
-      <td>${fmtDate(p.fechaSubida)}</td>
-      <td><button class="btn-sm btn-red" onclick="event.stopPropagation();deletePdf('${p.id}','${(p.nombre||'').replace(/'/g,"\\'")}')">🗑️</button></td>
+      <td style="text-align:center;">${p.urlPdf ? `<span style="color:var(--green);font-size:18px;" title="${p.urlPdf}">🔗</span>` : `<span style="color:var(--border);font-size:18px;">—</span>`}</td>
+      <td style="white-space:nowrap;">
+        <button class="btn-sm btn-blue" onclick="event.stopPropagation();editarUrlPdf('${p.id}','${(p.nombre||'').replace(/'/g,"\\'")}','${(p.urlPdf||'').replace(/'/g,"\\'")}')">✏️ URL</button>
+        <button class="btn-sm btn-red" onclick="event.stopPropagation();deletePdf('${p.id}','${(p.nombre||'').replace(/'/g,"\\'")}')">🗑️</button>
+      </td>
     </tr>`).join('')}
     </tbody></table>`;
 }
@@ -1265,6 +1284,27 @@ async function deleteSelectedPdfs(){
       showToast(`${ids.length} documento${ids.length!==1?'s':''} eliminado${ids.length!==1?'s':''}.`,'green');
     }
   });
+}
+
+function editarUrlPdf(id, nombre, urlActual){
+  const modal = document.getElementById('modal-url-pdf');
+  document.getElementById('modal-url-nombre').textContent = nombre;
+  document.getElementById('modal-url-input').value = urlActual || '';
+  document.getElementById('modal-url-id').value = id;
+  modal.style.display='flex';
+  setTimeout(()=>document.getElementById('modal-url-input').focus(),100);
+}
+async function guardarUrlPdf(){
+  const id = document.getElementById('modal-url-id').value;
+  const url = document.getElementById('modal-url-input').value.trim();
+  document.getElementById('modal-url-pdf').style.display='none';
+  if(url){
+    await db.ref(`${DB_PATH}/pdfs/${id}/urlPdf`).set(url);
+    showToast('URL guardada — el chip de cita ahora será clickeable ✓','green');
+  } else {
+    await db.ref(`${DB_PATH}/pdfs/${id}/urlPdf`).remove();
+    showToast('URL eliminada.','');
+  }
 }
 
 async function deletePdf(id, nombre){
