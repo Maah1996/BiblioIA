@@ -607,61 +607,42 @@ footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
       <!-- ── SUBIR PDF ─────────────────────────────── -->
       <div class="view" id="view-subir-pdf">
         <div class="page-header">
-          <h2>Subir nuevo PDF</h2>
-          <p>Agrega un documento a la biblioteca. El texto se extrae automáticamente.</p>
+          <h2>Subir PDFs</h2>
+          <p>Puedes subir uno o varios PDFs a la vez. Se procesarán automáticamente.</p>
         </div>
-        <div class="card" style="max-width:680px;">
+        <div class="card" style="max-width:720px;">
           <div class="field-row col2">
             <div class="field-group">
-              <label>Nombre del documento</label>
-              <input type="text" id="pdf-nombre" placeholder="Ej: Reglamento Interno 2026">
-            </div>
-            <div class="field-group">
-              <label>Materia / Carpeta</label>
+              <label>Materia / Carpeta <span style="color:var(--red);">*</span></label>
               <select id="pdf-categoria">
                 <option value="">Seleccionar materia...</option>
               </select>
             </div>
-          </div>
-          <div class="field-row">
             <div class="field-group">
-              <label>Descripción (opcional)</label>
-              <textarea id="pdf-desc" rows="2" placeholder="Descripción breve del contenido..."></textarea>
-            </div>
-          </div>
-          <div class="field-row">
-            <div class="field-group">
-              <label>URL del PDF en OneDrive (opcional)</label>
-              <input type="url" id="pdf-url" placeholder="https://1drv.ms/b/... (enlace compartido del PDF)">
-              <div style="font-size:11px;color:var(--text-g);margin-top:4px;">💡 Pega el enlace compartido de OneDrive. Se usará para abrir el PDF directo desde las citas de la IA.</div>
+              <label>Nombre (solo si subes 1 PDF)</label>
+              <input type="text" id="pdf-nombre" placeholder="Se usa el nombre del archivo si vacío">
             </div>
           </div>
           <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleDrop(event)">
-            <input type="file" id="file-input" accept=".pdf" style="display:none" onchange="handleFileSelect(event)">
+            <input type="file" id="file-input" accept=".pdf" multiple style="display:none" onchange="handleFileSelect(event)">
             <div class="uz-icon">📄</div>
-            <h3>Arrastra tu PDF aquí</h3>
-            <p>o haz clic para seleccionar · Solo archivos PDF · Máx. 50MB</p>
+            <h3>Arrastra uno o varios PDFs aquí</h3>
+            <p>o haz clic para seleccionar · Solo archivos PDF · Máx. 50MB por archivo</p>
           </div>
-          <div id="upload-preview" style="display:none;margin-top:16px;">
-            <div style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--bg);border-radius:var(--radius-s);border:1px solid var(--border);margin-bottom:12px;">
-              <span style="font-size:28px;">📄</span>
-              <div style="flex:1;">
-                <div style="font-size:13px;font-weight:600;color:var(--navy);" id="upload-filename">archivo.pdf</div>
-                <div style="font-size:11px;color:var(--text-g);" id="upload-filesize"></div>
-              </div>
-              <button onclick="clearFile()" style="background:none;border:none;font-size:18px;color:var(--text-g);cursor:pointer;">✕</button>
+          <!-- Lista de archivos seleccionados -->
+          <div id="upload-file-list" style="display:none;margin-top:16px;display:none;flex-direction:column;gap:8px;"></div>
+          <!-- Progreso general -->
+          <div id="upload-progress-wrap" style="display:none;margin-top:16px;">
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-g);margin-bottom:6px;">
+              <span id="progress-label">Procesando...</span>
+              <span id="progress-pct">0%</span>
             </div>
-            <div id="upload-progress" style="display:none;">
-              <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-g);margin-bottom:6px;">
-                <span id="progress-label">Extrayendo texto...</span>
-                <span id="progress-pct">0%</span>
-              </div>
-              <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
-            </div>
+            <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
           </div>
-          <div style="margin-top:20px;display:flex;gap:12px;">
-            <button class="btn-sm btn-blue" id="btn-upload" onclick="uploadPDF()" style="padding:11px 24px;font-size:13px;">⬆️ Procesar y subir PDF</button>
-            <button class="btn-sm btn-gray" onclick="clearFile()" style="padding:11px 24px;font-size:13px;">Cancelar</button>
+          <div style="margin-top:20px;display:flex;gap:12px;align-items:center;">
+            <button class="btn-sm btn-blue" id="btn-upload" onclick="uploadPDF()" style="padding:11px 24px;font-size:13px;">⬆️ Procesar y subir</button>
+            <button class="btn-sm btn-gray" onclick="clearFile()" style="padding:11px 24px;font-size:13px;">Limpiar</button>
+            <span id="upload-result" style="font-size:13px;color:var(--green);font-weight:600;"></span>
           </div>
         </div>
       </div>
@@ -1084,95 +1065,112 @@ function loadDashboard(){
   });
 }
 
-// ══ PDF UPLOAD ════════════════════════════════════════════
-let selectedFile = null;
+// ══ PDF UPLOAD (multi-archivo) ════════════════════════════
+let selectedFiles = [];
 
-function handleFileSelect(e){ setFile(e.target.files[0]); }
+function handleFileSelect(e){ setFiles(Array.from(e.target.files)); }
 function handleDrop(e){
   e.preventDefault();
   document.getElementById('upload-zone').classList.remove('drag-over');
-  const file = e.dataTransfer.files[0];
-  if(file && file.type==='application/pdf') setFile(file);
-  else showToast('Solo se aceptan archivos PDF.','red');
+  const files = Array.from(e.dataTransfer.files).filter(f=>f.type==='application/pdf');
+  if(!files.length){ showToast('Solo se aceptan archivos PDF.','red'); return; }
+  setFiles(files);
 }
-function setFile(file){
-  if(!file) return;
-  if(file.type !== 'application/pdf'){ showToast('Solo PDFs.','red'); return; }
-  if(file.size > 52428800){ showToast('El archivo es demasiado grande (máx. 50MB).','red'); return; }
-  selectedFile = file;
-  document.getElementById('upload-preview').style.display='';
-  document.getElementById('upload-zone').style.display='none';
-  document.getElementById('upload-filename').textContent = file.name;
-  document.getElementById('upload-filesize').textContent = (file.size/1024/1024).toFixed(2)+' MB';
+function setFiles(files){
+  const validos = files.filter(f=>{
+    if(f.type !== 'application/pdf'){ showToast(`"${f.name}" no es PDF — ignorado.`,'red'); return false; }
+    if(f.size > 52428800){ showToast(`"${f.name}" supera 50MB — ignorado.`,'red'); return false; }
+    return true;
+  });
+  if(!validos.length) return;
+  selectedFiles = validos;
+  renderFileList();
+}
+function renderFileList(){
+  const el = document.getElementById('upload-file-list');
+  if(!selectedFiles.length){ el.style.display='none'; return; }
+  el.style.display='flex';
+  el.innerHTML = selectedFiles.map((f,i)=>`
+    <div id="file-row-${i}" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg);border-radius:var(--radius-s);border:1px solid var(--border);">
+      <span style="font-size:22px;">📄</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.name.replace(/\.pdf$/i,'')}</div>
+        <div style="font-size:11px;color:var(--text-g);">${(f.size/1024/1024).toFixed(2)} MB</div>
+      </div>
+      <span id="file-status-${i}" style="font-size:18px;">⏳</span>
+      <button onclick="removeFile(${i})" style="background:none;border:none;font-size:16px;color:var(--text-g);cursor:pointer;padding:4px;">✕</button>
+    </div>`).join('');
+}
+function removeFile(i){
+  selectedFiles.splice(i,1);
+  renderFileList();
 }
 function clearFile(){
-  selectedFile = null;
-  document.getElementById('upload-preview').style.display='none';
-  document.getElementById('upload-zone').style.display='';
+  selectedFiles = [];
+  const fl = document.getElementById('upload-file-list');
+  if(fl){ fl.style.display='none'; fl.innerHTML=''; }
+  const pw = document.getElementById('upload-progress-wrap');
+  if(pw) pw.style.display='none';
+  const pf = document.getElementById('progress-fill');
+  if(pf) pf.style.width='0%';
   document.getElementById('file-input').value='';
-  document.getElementById('upload-progress').style.display='none';
-  document.getElementById('progress-fill').style.width='0%';
+  const ur = document.getElementById('upload-result');
+  if(ur) ur.textContent='';
+  document.getElementById('pdf-nombre').value='';
+  document.getElementById('pdf-categoria').value='';
 }
 
 async function uploadPDF(){
-  if(!selectedFile){ showToast('Selecciona un archivo PDF.','red'); return; }
-  const nombre = document.getElementById('pdf-nombre').value.trim();
-  const cat    = document.getElementById('pdf-categoria').value;
-  const desc   = document.getElementById('pdf-desc').value.trim();
-  const urlPdf = document.getElementById('pdf-url').value.trim();
-  if(!nombre){ showToast('Ingresa el nombre del documento.','red'); return; }
-  if(!cat){ showToast('Selecciona una categoría.','red'); return; }
+  if(!selectedFiles.length){ showToast('Selecciona al menos un PDF.','red'); return; }
+  const cat = document.getElementById('pdf-categoria').value;
+  if(!cat){ showToast('Selecciona una materia/carpeta.','red'); return; }
 
   const btn = document.getElementById('btn-upload');
   btn.disabled=true; btn.textContent='Procesando...';
-  document.getElementById('upload-progress').style.display='';
-  setProgress(5,'Leyendo PDF...');
+  document.getElementById('upload-progress-wrap').style.display='';
+  document.getElementById('upload-result').textContent='';
 
-  try {
-    // 1. Extraer texto con PDF.js
-    const arrayBuffer = await selectedFile.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    const totalPages = pdf.numPages;
-    const textos = {};
-    for(let i=1;i<=totalPages;i++){
-      const page = await pdf.getPage(i);
-      const content = await page.getTextContent();
-      textos[i-1] = content.items.map(s=>s.str).join(' ');
-      setProgress(5 + Math.round((i/totalPages)*60), `Extrayendo texto — página ${i} de ${totalPages}`);
+  let ok=0, fail=0;
+  for(let i=0; i<selectedFiles.length; i++){
+    const file = selectedFiles[i];
+    const nombreInput = selectedFiles.length===1 ? document.getElementById('pdf-nombre').value.trim() : '';
+    const nombre = nombreInput || file.name.replace(/\.pdf$/i,'');
+    setFileStatus(i,'⏳');
+    setProgress(0, `[${i+1}/${selectedFiles.length}] Leyendo "${nombre}"...`);
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const totalPages = pdf.numPages;
+      const textos = {};
+      for(let p=1;p<=totalPages;p++){
+        const page = await pdf.getPage(p);
+        const content = await page.getTextContent();
+        textos[p-1] = content.items.map(s=>s.str).join(' ');
+        setProgress(Math.round((p/totalPages)*85), `[${i+1}/${selectedFiles.length}] "${nombre}" — pág. ${p}/${totalPages}`);
+      }
+      setProgress(92, `[${i+1}/${selectedFiles.length}] Guardando "${nombre}"...`);
+      const newRef = db.ref(`${DB_PATH}/pdfs`).push();
+      await newRef.set({ id: newRef.key, nombre, categoria: cat, descripcion:'', paginas: totalPages, fechaSubida: new Date().toISOString(), subidoPor: currentUser.email, texto: textos });
+      setFileStatus(i,'✅');
+      ok++;
+    } catch(e){
+      console.error(e);
+      setFileStatus(i,'❌');
+      fail++;
     }
-    setProgress(70,'Guardando en base de datos...');
-
-    // 2. Guardar en Firebase
-    const newRef = db.ref(`${DB_PATH}/pdfs`).push();
-    const pdfData = {
-      id: newRef.key,
-      nombre, categoria: cat, descripcion: desc,
-      paginas: totalPages,
-      fechaSubida: new Date().toISOString(),
-      subidoPor: currentUser.email,
-      texto: textos
-    };
-    if(urlPdf) pdfData.urlPdf = urlPdf;
-    await newRef.set(pdfData);
-    setProgress(100,'¡Listo!');
-
-    setTimeout(()=>{
-      showToast(`"${nombre}" subido correctamente ✓`,'green');
-      clearFile();
-      document.getElementById('pdf-nombre').value='';
-      document.getElementById('pdf-categoria').value='';
-      document.getElementById('pdf-desc').value='';
-      document.getElementById('pdf-url').value='';
-      btn.disabled=false; btn.textContent='⬆️ Procesar y subir PDF';
-      document.getElementById('upload-progress').style.display='none';
-      goTo('biblioteca-admin');
-    }, 800);
-  } catch(e) {
-    console.error(e);
-    showToast('Error al procesar el PDF: '+e.message,'red');
-    btn.disabled=false; btn.textContent='⬆️ Procesar y subir PDF';
-    document.getElementById('upload-progress').style.display='none';
   }
+
+  setProgress(100,'¡Completado!');
+  const resEl = document.getElementById('upload-result');
+  resEl.textContent = `✅ ${ok} subido${ok!==1?'s':''}${fail?` · ❌ ${fail} con error`:''}`;
+  resEl.style.color = fail ? 'var(--red)' : 'var(--green)';
+  showToast(`${ok} PDF${ok!==1?'s':''} subido${ok!==1?'s':''} correctamente ✓`,'green');
+  btn.disabled=false; btn.textContent='⬆️ Procesar y subir';
+}
+
+function setFileStatus(i, icon){
+  const el = document.getElementById(`file-status-${i}`);
+  if(el) el.textContent=icon;
 }
 
 function setProgress(pct, label){
