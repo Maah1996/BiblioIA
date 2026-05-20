@@ -1287,6 +1287,7 @@ async function sendQuery(){
     // Llamar Claude API
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
+      credentials: 'omit',
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': CLAUDE_API_KEY,
