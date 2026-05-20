@@ -759,7 +759,13 @@ footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
         <div class="query-layout">
           <div>
             <div class="pdf-selector">
-              <div class="pdf-selector-head">📄 Seleccionar documentos</div>
+              <div class="pdf-selector-head">📁 Carpeta</div>
+              <div style="padding:10px 12px;border-bottom:1px solid var(--border);">
+                <select id="consultar-carpeta" onchange="filtrarPdfsPorCarpeta()" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--radius-s);font-size:13px;font-family:inherit;outline:none;background:#fff;color:var(--navy);cursor:pointer;">
+                  <option value="">— Todas las carpetas —</option>
+                </select>
+              </div>
+              <div class="pdf-selector-head" style="border-top:none;">📄 Documentos</div>
               <div id="pdf-selector-list">
                 <div style="padding:20px;text-align:center;color:var(--text-g);font-size:13px;">Cargando...</div>
               </div>
@@ -1456,14 +1462,34 @@ function goToConsultarWith(pdfId){
 
 // ══ PDF SELECTOR ══════════════════════════════════════════
 function loadPdfSelector(){
+  // Poblar select de carpetas
+  const sel = document.getElementById('consultar-carpeta');
+  if(sel){
+    const activas = allMaterias.filter(m=>m.activo!==false);
+    sel.innerHTML = '<option value="">— Todas las carpetas —</option>' +
+      activas.map(m=>`<option value="${m.nombre}">${m.icono||'📁'} ${m.nombre}</option>`).join('');
+  }
+  filtrarPdfsPorCarpeta();
+}
+
+function filtrarPdfsPorCarpeta(){
+  const carpeta = (document.getElementById('consultar-carpeta')?.value)||'';
+  const pdfs = carpeta ? allPdfs.filter(p=>p.categoria===carpeta) : allPdfs;
+  renderPdfSelectorList(pdfs);
+}
+
+function renderPdfSelectorList(pdfs){
   const el = document.getElementById('pdf-selector-list');
-  if(!allPdfs.length){ el.innerHTML='<div style="padding:20px;text-align:center;color:var(--text-g);font-size:13px;">Sin documentos disponibles.</div>'; return; }
-  el.innerHTML = allPdfs.map(p=>`
+  if(!pdfs.length){
+    el.innerHTML='<div style="padding:20px;text-align:center;color:var(--text-g);font-size:13px;">Sin documentos en esta carpeta.</div>';
+    return;
+  }
+  el.innerHTML = pdfs.map(p=>`
     <div class="pdf-item">
       <input type="checkbox" id="chk-pdf-${p.id}" value="${p.id}">
       <div class="pi-info">
         <div class="pi-name">${p.nombre||'Sin nombre'}</div>
-        <div class="pi-cat">${p.categoria||''} · ${p.paginas||'?'} pág.</div>
+        <div class="pi-cat">${p.paginas||'?'} pág.</div>
       </div>
     </div>`).join('');
 }
