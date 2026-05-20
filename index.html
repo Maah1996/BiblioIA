@@ -1259,6 +1259,10 @@ async function sendQuery(){
   const selected = [...document.querySelectorAll('#pdf-selector-list input:checked')].map(c=>c.value);
   if(!selected.length){ showToast('Selecciona al menos un documento.','red'); return; }
 
+  // Cargar key si no está en memoria
+  if(!CLAUDE_API_KEY) await loadClaudeKey();
+  if(!CLAUDE_API_KEY){ showToast('No hay API Key configurada. Ve a Ajustes.','red'); return; }
+
   // Check plan
   const userSnap = await db.ref(`${DB_PATH}/usuarios/${currentUser.uid}`).once('value');
   const userData = userSnap.val()||{};
@@ -1290,7 +1294,7 @@ async function sendQuery(){
         'anthropic-dangerous-direct-browser-calls': 'true'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-sonnet-4-5',
         max_tokens: 2000,
         system: SYSTEM_PROMPT,
         messages: [{
