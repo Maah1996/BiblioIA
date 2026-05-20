@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BiblioIA — Consultas Académicas con Inteligencia Artificial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-database-compat.js"></script>
+<!-- Storage no requerido en plan gratuito -->
+<style>
+:root{
+  --navy:#0a1628;--navy2:#1a3f6f;--blue:#1e40af;--blue-l:#3b82f6;
+  --gold:#f59e0b;--gold-d:#d97706;--green:#10b981;--red:#ef4444;
+  --bg:#f1f5f9;--white:#fff;--text:#0f172a;--text-g:#64748b;
+  --border:#e2e8f0;--radius:12px;--radius-s:8px;
+  --shadow:0 4px 24px rgba(0,0,0,.08);--shadow-l:0 8px 40px rgba(0,0,0,.14);
+  --tr:all .22s ease;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Inter',sans-serif;color:var(--text);background:var(--bg);overflow-x:hidden;}
+a{text-decoration:none;color:inherit;}
+input,textarea,select{font-family:inherit;}
+button{font-family:inherit;cursor:pointer;}
+
+/* ═══ LANDING ═══════════════════════════════════════════ */
+#landing{display:block;}
+.l-nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:16px 48px;display:flex;align-items:center;justify-content:space-between;background:rgba(10,22,40,.85);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,.06);}
+.l-logo{display:flex;align-items:center;gap:10px;}
+.l-logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--blue-l),var(--gold));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+.l-logo-text{font-family:'Playfair Display',serif;font-size:20px;color:#fff;letter-spacing:.3px;}
+.l-logo-sub{font-size:10px;color:rgba(255,255,255,.5);font-weight:400;font-family:'Inter',sans-serif;margin-left:2px;letter-spacing:1px;text-transform:uppercase;}
+.l-nav-links{display:flex;gap:32px;}
+.l-nav-links a{font-size:13px;color:rgba(255,255,255,.7);font-weight:500;transition:var(--tr);}
+.l-nav-links a:hover{color:#fff;}
+.l-nav-btns{display:flex;gap:10px;align-items:center;}
+.btn-outline{padding:8px 20px;border:1.5px solid rgba(255,255,255,.3);border-radius:8px;color:#fff;font-size:13px;font-weight:600;background:transparent;transition:var(--tr);}
+.btn-outline:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.6);}
+.btn-primary{padding:9px 22px;border:none;border-radius:8px;background:linear-gradient(135deg,var(--blue-l),var(--blue));color:#fff;font-size:13px;font-weight:700;transition:var(--tr);box-shadow:0 4px 14px rgba(30,64,175,.4);}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(30,64,175,.5);}
+
+/* HERO */
+.hero{min-height:100vh;background:linear-gradient(135deg,#060e1e 0%,#0a1e3d 40%,#0d2b52 70%,#0a1e3d 100%);display:flex;align-items:center;padding:120px 48px 80px;gap:60px;overflow:hidden;position:relative;}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 70% 50%,rgba(59,130,246,.12) 0%,transparent 60%);pointer-events:none;}
+.hero-particles{position:absolute;inset:0;overflow:hidden;pointer-events:none;}
+.particle{position:absolute;border-radius:50%;animation:float 8s ease-in-out infinite;}
+@keyframes float{0%,100%{transform:translateY(0) rotate(0deg);}50%{transform:translateY(-30px) rotate(180deg);}}
+.hero-left{flex:1;max-width:580px;z-index:1;}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);border-radius:20px;padding:6px 16px;margin-bottom:28px;}
+.hero-badge span{font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.8px;text-transform:uppercase;}
+.hero-badge .dot{width:6px;height:6px;border-radius:50%;background:var(--gold);animation:pulse 2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+.hero h1{font-family:'Playfair Display',serif;font-size:clamp(36px,5vw,58px);font-weight:700;color:#fff;line-height:1.15;margin-bottom:20px;}
+.hero h1 em{font-style:normal;background:linear-gradient(90deg,var(--blue-l),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hero-desc{font-size:16px;color:rgba(255,255,255,.65);line-height:1.75;margin-bottom:36px;max-width:480px;}
+.hero-actions{display:flex;gap:14px;align-items:center;flex-wrap:wrap;}
+.btn-hero{padding:14px 32px;border-radius:10px;font-size:15px;font-weight:700;border:none;background:linear-gradient(135deg,var(--blue-l),var(--blue));color:#fff;transition:var(--tr);box-shadow:0 6px 24px rgba(59,130,246,.4);cursor:pointer;}
+.btn-hero:hover{transform:translateY(-2px);box-shadow:0 10px 32px rgba(59,130,246,.5);}
+.btn-hero-sec{padding:14px 32px;border-radius:10px;font-size:15px;font-weight:600;border:1.5px solid rgba(255,255,255,.25);color:rgba(255,255,255,.85);background:transparent;transition:var(--tr);cursor:pointer;}
+.btn-hero-sec:hover{border-color:rgba(255,255,255,.6);background:rgba(255,255,255,.07);}
+.hero-stats{display:flex;gap:32px;margin-top:48px;padding-top:36px;border-top:1px solid rgba(255,255,255,.08);}
+.hero-stat .val{font-size:28px;font-weight:800;color:#fff;line-height:1;}
+.hero-stat .lbl{font-size:11px;color:rgba(255,255,255,.45);margin-top:4px;font-weight:500;letter-spacing:.5px;text-transform:uppercase;}
+.hero-right{flex:1;display:flex;justify-content:center;align-items:center;z-index:1;}
+
+/* FEATURES */
+.features{padding:100px 48px;background:#fff;}
+.section-label{text-align:center;font-size:11px;font-weight:700;color:var(--blue-l);letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;}
+.section-title{text-align:center;font-family:'Playfair Display',serif;font-size:clamp(28px,4vw,42px);font-weight:700;color:var(--navy);margin-bottom:14px;line-height:1.25;}
+.section-desc{text-align:center;font-size:16px;color:var(--text-g);max-width:560px;margin:0 auto 64px;line-height:1.7;}
+.feat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:28px;max-width:1100px;margin:0 auto;}
+.feat-card{background:var(--bg);border-radius:var(--radius);padding:36px 32px;border:1px solid var(--border);transition:var(--tr);}
+.feat-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-l);border-color:transparent;}
+.feat-icon{width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:22px;font-size:24px;}
+.feat-card h3{font-size:18px;font-weight:700;color:var(--navy);margin-bottom:10px;}
+.feat-card p{font-size:14px;color:var(--text-g);line-height:1.7;}
+
+/* HOW IT WORKS */
+.how{padding:100px 48px;background:linear-gradient(135deg,#f8faff 0%,#eef2ff 100%);}
+.steps{display:flex;gap:0;max-width:960px;margin:0 auto;position:relative;}
+.steps::before{content:'';position:absolute;top:36px;left:calc(16.66% + 36px);right:calc(16.66% + 36px);height:2px;background:linear-gradient(90deg,var(--blue-l),var(--gold));z-index:0;}
+.step{flex:1;text-align:center;padding:0 24px;position:relative;z-index:1;}
+.step-num{width:72px;height:72px;border-radius:50%;background:#fff;border:3px solid var(--blue-l);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:22px;font-weight:800;color:var(--blue);box-shadow:0 4px 20px rgba(59,130,246,.2);}
+.step h3{font-size:16px;font-weight:700;color:var(--navy);margin-bottom:8px;}
+.step p{font-size:13px;color:var(--text-g);line-height:1.65;}
+
+/* PRICING PREVIEW */
+.pricing-prev{padding:80px 48px;background:var(--navy);text-align:center;}
+.pricing-prev .section-title{color:#fff;}
+.pricing-prev .section-desc{color:rgba(255,255,255,.55);}
+.price-highlight{font-size:48px;font-weight:800;color:var(--gold);margin:24px 0 8px;}
+.price-detail{font-size:14px;color:rgba(255,255,255,.5);margin-bottom:36px;}
+
+/* FOOTER */
+footer{background:var(--navy);border-top:1px solid rgba(255,255,255,.06);padding:32px 48px;display:flex;align-items:center;justify-content:space-between;}
+footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
+
+/* ═══ AUTH MODAL ═══════════════════════════════════════ */
+.modal-overlay{display:none;position:fixed;inset:0;z-index:200;background:rgba(6,14,30,.8);backdrop-filter:blur(6px);align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal-box{background:#fff;border-radius:20px;padding:40px;width:100%;max-width:420px;box-shadow:var(--shadow-l);position:relative;animation:slideUp .25s ease;}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.modal-close{position:absolute;top:16px;right:16px;background:none;border:none;font-size:22px;color:var(--text-g);cursor:pointer;padding:4px;border-radius:6px;transition:var(--tr);}
+.modal-close:hover{background:var(--bg);}
+.modal-logo{display:flex;align-items:center;gap:10px;margin-bottom:28px;}
+.modal-logo .ico{width:40px;height:40px;background:linear-gradient(135deg,var(--blue-l),var(--blue));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;}
+.modal-logo .txt{font-family:'Playfair Display',serif;font-size:22px;color:var(--navy);font-weight:700;}
+.modal-title{font-size:22px;font-weight:700;color:var(--navy);margin-bottom:6px;}
+.modal-sub{font-size:13px;color:var(--text-g);margin-bottom:28px;}
+.form-group{margin-bottom:18px;}
+.form-group label{display:block;font-size:12px;font-weight:600;color:var(--text-g);margin-bottom:7px;text-transform:uppercase;letter-spacing:.5px;}
+.form-group input{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--radius-s);font-size:14px;color:var(--text);background:#fff;transition:var(--tr);outline:none;}
+.form-group input:focus{border-color:var(--blue-l);box-shadow:0 0 0 3px rgba(59,130,246,.12);}
+.btn-full{width:100%;padding:13px;border-radius:var(--radius-s);font-size:14px;font-weight:700;border:none;background:linear-gradient(135deg,var(--blue-l),var(--blue));color:#fff;cursor:pointer;transition:var(--tr);margin-top:6px;}
+.btn-full:hover{opacity:.92;transform:translateY(-1px);}
+.btn-full:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+.auth-toggle{text-align:center;margin-top:20px;font-size:13px;color:var(--text-g);}
+.auth-toggle a{color:var(--blue-l);font-weight:600;cursor:pointer;}
+.auth-toggle a:hover{text-decoration:underline;}
+.auth-error{background:#fef2f2;border:1px solid #fecaca;border-radius:var(--radius-s);padding:10px 14px;font-size:13px;color:var(--red);margin-bottom:16px;display:none;}
+.auth-error.show{display:block;}
+
+/* ═══ APP LAYOUT ══════════════════════════════════════ */
+#app{display:none;height:100vh;overflow:hidden;flex-direction:column;}
+.app-topbar{height:58px;background:var(--navy);display:flex;align-items:center;justify-content:space-between;padding:0 24px;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.06);}
+.top-logo{display:flex;align-items:center;gap:9px;}
+.top-logo .ico{width:30px;height:30px;background:linear-gradient(135deg,var(--blue-l),var(--gold));border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px;}
+.top-logo .txt{font-family:'Playfair Display',serif;font-size:17px;color:#fff;font-weight:700;}
+.top-user{display:flex;align-items:center;gap:14px;}
+.top-badge{background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);border-radius:20px;padding:3px 12px;font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.5px;}
+.top-badge.admin{background:rgba(16,185,129,.12);border-color:rgba(16,185,129,.3);color:var(--green);}
+.top-name{font-size:13px;color:rgba(255,255,255,.75);font-weight:500;}
+.btn-logout{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:7px;padding:6px 14px;font-size:12px;font-weight:600;color:rgba(255,255,255,.6);cursor:pointer;transition:var(--tr);}
+.btn-logout:hover{background:rgba(255,255,255,.12);color:#fff;}
+
+.app-body{display:flex;flex:1;overflow:hidden;}
+.sidebar{width:220px;background:var(--navy);flex-shrink:0;display:flex;flex-direction:column;padding:16px 12px;border-right:1px solid rgba(255,255,255,.06);overflow-y:auto;}
+.sidebar-section{margin-bottom:6px;}
+.sidebar-label{font-size:9px;font-weight:700;color:rgba(255,255,255,.3);letter-spacing:1.5px;text-transform:uppercase;padding:8px 10px 4px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;transition:var(--tr);margin-bottom:2px;}
+.nav-item:hover{background:rgba(255,255,255,.06);}
+.nav-item.active{background:linear-gradient(135deg,rgba(59,130,246,.25),rgba(30,64,175,.2));border:1px solid rgba(59,130,246,.2);}
+.nav-item .ni-icon{font-size:16px;width:20px;text-align:center;flex-shrink:0;}
+.nav-item .ni-text{font-size:13px;color:rgba(255,255,255,.65);font-weight:500;}
+.nav-item.active .ni-text{color:#fff;font-weight:600;}
+.nav-item:hover .ni-text{color:rgba(255,255,255,.9);}
+
+.app-main{flex:1;overflow-y:auto;padding:28px;}
+
+/* ═══ SHARED COMPONENTS ══════════════════════════════ */
+.view{display:none;}
+.view.active{display:block;}
+.page-header{margin-bottom:28px;}
+.page-header h2{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--navy);margin-bottom:4px;}
+.page-header p{font-size:14px;color:var(--text-g);}
+.card{background:#fff;border-radius:var(--radius);padding:24px;box-shadow:var(--shadow);border:1px solid var(--border);}
+.card-title{font-size:14px;font-weight:700;color:var(--navy);margin-bottom:18px;display:flex;align-items:center;gap:8px;}
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+.badge-blue{background:#eff6ff;color:var(--blue);}
+.badge-green{background:#f0fdf4;color:var(--green);}
+.badge-gold{background:#fffbeb;color:var(--gold-d);}
+.badge-red{background:#fef2f2;color:var(--red);}
+.btn-sm{padding:7px 16px;border-radius:7px;font-size:12px;font-weight:600;border:none;cursor:pointer;transition:var(--tr);}
+.btn-blue{background:var(--blue);color:#fff;}
+.btn-blue:hover{background:var(--blue-l);}
+.btn-green{background:var(--green);color:#fff;}
+.btn-green:hover{opacity:.88;}
+.btn-red{background:var(--red);color:#fff;}
+.btn-red:hover{opacity:.88;}
+.btn-gray{background:var(--bg);color:var(--text-g);border:1px solid var(--border);}
+.btn-gray:hover{background:var(--border);}
+.divider{height:1px;background:var(--border);margin:20px 0;}
+.empty-state{text-align:center;padding:60px 20px;color:var(--text-g);}
+.empty-state .es-icon{font-size:48px;margin-bottom:14px;}
+.empty-state p{font-size:14px;line-height:1.6;}
+
+/* STATS GRID */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:28px;}
+.stat-box{background:#fff;border-radius:var(--radius);padding:22px 24px;box-shadow:var(--shadow);border:1px solid var(--border);display:flex;flex-direction:column;gap:6px;}
+.stat-box .sb-val{font-size:32px;font-weight:800;color:var(--navy);line-height:1;}
+.stat-box .sb-lbl{font-size:12px;color:var(--text-g);font-weight:500;}
+.stat-box .sb-icon{font-size:28px;margin-bottom:4px;}
+
+/* TABLE */
+.data-table{width:100%;border-collapse:collapse;font-size:13px;}
+.data-table th{background:var(--bg);padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:var(--text-g);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);}
+.data-table td{padding:12px 14px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle;}
+.data-table tr:hover td{background:#fafbff;}
+.data-table tr:last-child td{border-bottom:none;}
+
+/* UPLOAD AREA */
+.upload-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:48px;text-align:center;cursor:pointer;transition:var(--tr);}
+.upload-zone:hover,.upload-zone.drag-over{border-color:var(--blue-l);background:#eff6ff;}
+.upload-zone .uz-icon{font-size:48px;margin-bottom:14px;}
+.upload-zone h3{font-size:16px;font-weight:700;color:var(--navy);margin-bottom:6px;}
+.upload-zone p{font-size:13px;color:var(--text-g);}
+.progress-bar{background:var(--border);border-radius:10px;height:8px;overflow:hidden;margin:10px 0;}
+.progress-fill{background:linear-gradient(90deg,var(--blue-l),var(--blue));height:100%;border-radius:10px;transition:width .3s ease;}
+
+/* QUERY INTERFACE */
+.query-layout{display:grid;grid-template-columns:300px 1fr;gap:20px;align-items:start;}
+.pdf-selector{background:#fff;border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow);overflow:hidden;}
+.pdf-selector-head{padding:14px 18px;background:var(--bg);border-bottom:1px solid var(--border);font-size:13px;font-weight:700;color:var(--navy);}
+.pdf-item{display:flex;align-items:flex-start;gap:10px;padding:12px 18px;border-bottom:1px solid var(--border);cursor:pointer;transition:var(--tr);}
+.pdf-item:last-child{border-bottom:none;}
+.pdf-item:hover{background:#fafbff;}
+.pdf-item input[type=checkbox]{margin-top:2px;accent-color:var(--blue);}
+.pdf-item .pi-info{flex:1;}
+.pdf-item .pi-name{font-size:13px;font-weight:600;color:var(--navy);margin-bottom:2px;}
+.pdf-item .pi-cat{font-size:11px;color:var(--text-g);}
+.chat-area{background:#fff;border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow);display:flex;flex-direction:column;min-height:520px;}
+.chat-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.chat-head h3{font-size:14px;font-weight:700;color:var(--navy);}
+.chat-messages{flex:1;padding:20px;overflow-y:auto;display:flex;flex-direction:column;gap:16px;min-height:320px;}
+.msg{max-width:85%;padding:14px 18px;border-radius:12px;font-size:13px;line-height:1.7;}
+.msg-user{align-self:flex-end;background:linear-gradient(135deg,var(--blue),var(--blue-l));color:#fff;border-radius:12px 12px 4px 12px;}
+.msg-ai{align-self:flex-start;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:12px 12px 12px 4px;white-space:pre-wrap;}
+.msg-ai .citation{display:inline-flex;align-items:center;gap:4px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;color:var(--blue);margin-top:10px;}
+.chat-input-area{padding:16px 20px;border-top:1px solid var(--border);}
+.chat-input-row{display:flex;gap:10px;align-items:flex-end;}
+.chat-input-row textarea{flex:1;padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--radius-s);font-size:13px;resize:none;outline:none;font-family:inherit;transition:var(--tr);max-height:120px;}
+.chat-input-row textarea:focus{border-color:var(--blue-l);box-shadow:0 0 0 3px rgba(59,130,246,.1);}
+.btn-send{padding:11px 20px;border-radius:var(--radius-s);background:linear-gradient(135deg,var(--blue-l),var(--blue));color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;transition:var(--tr);flex-shrink:0;}
+.btn-send:hover{opacity:.9;}
+.btn-send:disabled{opacity:.4;cursor:not-allowed;}
+.chat-hint{font-size:11px;color:var(--text-g);margin-top:8px;text-align:center;}
+.typing{display:flex;gap:5px;align-items:center;padding:14px 18px;}
+.typing span{width:7px;height:7px;border-radius:50%;background:var(--text-g);animation:typing .8s ease-in-out infinite;}
+.typing span:nth-child(2){animation-delay:.15s;}
+.typing span:nth-child(3){animation-delay:.3s;}
+@keyframes typing{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);opacity:.5;}}
+
+/* HISTORY */
+.hist-item{background:#fff;border-radius:var(--radius-s);padding:18px;border:1px solid var(--border);margin-bottom:12px;transition:var(--tr);}
+.hist-item:hover{box-shadow:var(--shadow);}
+.hist-q{font-size:14px;font-weight:600;color:var(--navy);margin-bottom:8px;}
+.hist-a{font-size:13px;color:var(--text-g);white-space:pre-wrap;line-height:1.6;border-left:3px solid var(--blue-l);padding-left:12px;margin-bottom:10px;}
+.hist-meta{display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
+.hist-date{font-size:11px;color:var(--text-g);}
+.hist-pdf{font-size:11px;background:#eff6ff;color:var(--blue);padding:2px 8px;border-radius:5px;font-weight:600;}
+
+/* FORM FIELDS */
+.field-row{display:grid;gap:16px;margin-bottom:18px;}
+.field-row.col2{grid-template-columns:1fr 1fr;}
+.field-group{display:flex;flex-direction:column;gap:6px;}
+.field-group label{font-size:11px;font-weight:700;color:var(--text-g);text-transform:uppercase;letter-spacing:.5px;}
+.field-group input,.field-group select,.field-group textarea{padding:10px 13px;border:1.5px solid var(--border);border-radius:var(--radius-s);font-size:13px;outline:none;transition:var(--tr);font-family:inherit;color:var(--text);}
+.field-group input:focus,.field-group select:focus,.field-group textarea:focus{border-color:var(--blue-l);box-shadow:0 0 0 3px rgba(59,130,246,.1);}
+
+/* TOAST */
+.toast{position:fixed;bottom:28px;right:28px;background:var(--navy);color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;box-shadow:var(--shadow-l);z-index:999;transform:translateY(80px);opacity:0;transition:all .3s ease;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.green{background:var(--green);}
+.toast.red{background:var(--red);}
+
+/* MODAL */
+.modal-sm{display:none;position:fixed;inset:0;z-index:300;background:rgba(6,14,30,.7);align-items:center;justify-content:center;}
+.modal-sm.open{display:flex;}
+.modal-sm-box{background:#fff;border-radius:16px;padding:28px;width:100%;max-width:380px;box-shadow:var(--shadow-l);}
+
+/* ═══ RESPONSIVE ══════════════════════════════════════ */
+@media(max-width:900px){
+  .sidebar{width:60px;}
+  .ni-text,.sidebar-label{display:none;}
+  .query-layout{grid-template-columns:1fr;}
+  .hero{flex-direction:column;padding:100px 24px 60px;}
+  .hero-right{display:none;}
+  .steps::before{display:none;}
+  .steps{flex-direction:column;gap:24px;}
+}
+@media(max-width:600px){
+  .l-nav{padding:14px 20px;}
+  .l-nav-links{display:none;}
+  .features,.how,.pricing-prev{padding:60px 20px;}
+  .feat-grid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ LANDING PAGE ════════════════════ -->
+<div id="landing">
+
+<nav class="l-nav">
+  <div class="l-logo">
+    <div class="l-logo-icon">📚</div>
+    <div>
+      <div class="l-logo-text">BiblioIA</div>
+    </div>
+  </div>
+  <div class="l-nav-links">
+    <a href="#features">Características</a>
+    <a href="#como-funciona">Cómo funciona</a>
+    <a href="#precios">Precios</a>
+  </div>
+  <div class="l-nav-btns">
+    <button class="btn-outline" onclick="openAuth('login')">Iniciar sesión</button>
+    <button class="btn-primary" onclick="openAuth('register')">Crear cuenta</button>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-particles" id="particles-container"></div>
+  <div class="hero-left">
+    <div class="hero-badge"><div class="dot"></div><span>Plataforma Académica IA</span></div>
+    <h1>Consulta documentos con <em>inteligencia artificial</em></h1>
+    <p class="hero-desc">Sube tus documentos PDF, selecciona los que necesitas y haz preguntas en lenguaje natural. Obtén respuestas precisas con citas exactas de página y documento.</p>
+    <div class="hero-actions">
+      <button class="btn-hero" onclick="openAuth('register')">Comenzar gratis</button>
+      <button class="btn-hero-sec" onclick="openAuth('login')">Ya tengo cuenta →</button>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="val">100%</div><div class="lbl">Precisión citada</div></div>
+      <div class="hero-stat"><div class="val">∞</div><div class="lbl">Documentos</div></div>
+      <div class="hero-stat"><div class="val">24/7</div><div class="lbl">Disponible</div></div>
+    </div>
+  </div>
+  <div class="hero-right">
+    <svg viewBox="0 0 520 440" width="480" height="400" xmlns="http://www.w3.org/2000/svg">
+      <!-- Glow background -->
+      <defs>
+        <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.15"/>
+          <stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/>
+        </radialGradient>
+        <filter id="blur"><feGaussianBlur stdDeviation="3"/></filter>
+      </defs>
+      <ellipse cx="260" cy="220" rx="220" ry="180" fill="url(#glow)"/>
+      <!-- Floating ring -->
+      <circle cx="260" cy="220" r="175" stroke="rgba(59,130,246,0.12)" stroke-width="1" fill="none"/>
+      <circle cx="260" cy="220" r="140" stroke="rgba(59,130,246,0.07)" stroke-width="1" fill="none"/>
+      <!-- Main document -->
+      <rect x="155" y="100" width="160" height="200" rx="10" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+      <rect x="155" y="100" width="160" height="30" rx="10" fill="rgba(59,130,246,0.3)"/>
+      <rect x="155" y="120" width="160" height="10" rx="0" fill="rgba(59,130,246,0.3)"/>
+      <!-- Document lines -->
+      <rect x="170" y="148" width="120" height="4" rx="2" fill="rgba(255,255,255,0.3)"/>
+      <rect x="170" y="160" width="100" height="4" rx="2" fill="rgba(255,255,255,0.2)"/>
+      <rect x="170" y="172" width="115" height="4" rx="2" fill="rgba(255,255,255,0.2)"/>
+      <rect x="170" y="184" width="90" height="4" rx="2" fill="rgba(255,255,255,0.2)"/>
+      <rect x="170" y="208" width="120" height="4" rx="2" fill="rgba(255,255,255,0.3)"/>
+      <rect x="170" y="220" width="80" height="4" rx="2" fill="rgba(255,255,255,0.2)"/>
+      <rect x="170" y="232" width="110" height="4" rx="2" fill="rgba(255,255,255,0.2)"/>
+      <!-- PDF Label -->
+      <rect x="163" y="270" width="40" height="18" rx="4" fill="#ef4444" opacity="0.9"/>
+      <text x="183" y="283" text-anchor="middle" fill="white" font-size="9" font-weight="700" font-family="Inter,sans-serif">PDF</text>
+      <!-- Second doc behind -->
+      <rect x="195" y="88" width="150" height="190" rx="10" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.08)" stroke-width="1.5"/>
+      <!-- Third doc -->
+      <rect x="125" y="112" width="140" height="185" rx="10" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.08)" stroke-width="1.5"/>
+      <!-- AI Chat bubble (right) -->
+      <rect x="310" y="130" width="150" height="90" rx="12" fill="rgba(16,185,129,0.12)" stroke="rgba(16,185,129,0.4)" stroke-width="1.5"/>
+      <polygon points="310,170 295,180 312,185" fill="rgba(16,185,129,0.2)" stroke="rgba(16,185,129,0.4)" stroke-width="1.5"/>
+      <rect x="322" y="148" width="80" height="4" rx="2" fill="rgba(16,185,129,0.6)"/>
+      <rect x="322" y="160" width="110" height="4" rx="2" fill="rgba(255,255,255,0.3)"/>
+      <rect x="322" y="172" width="95" height="4" rx="2" fill="rgba(255,255,255,0.25)"/>
+      <rect x="322" y="184" width="70" height="4" rx="2" fill="rgba(255,255,255,0.2)"/>
+      <text x="325" y="215" fill="rgba(16,185,129,0.8)" font-size="9" font-weight="700" font-family="Inter,sans-serif">📄 Pág. 14 — Reglamento.pdf</text>
+      <!-- User question bubble (left) -->
+      <rect x="55" y="240" width="140" height="52" rx="10" fill="rgba(59,130,246,0.18)" stroke="rgba(59,130,246,0.4)" stroke-width="1.5"/>
+      <polygon points="195,268 210,260 193,280" fill="rgba(59,130,246,0.2)" stroke="rgba(59,130,246,0.4)" stroke-width="1.5"/>
+      <rect x="68" y="254" width="90" height="4" rx="2" fill="rgba(255,255,255,0.5)"/>
+      <rect x="68" y="266" width="110" height="4" rx="2" fill="rgba(255,255,255,0.35)"/>
+      <rect x="68" y="278" width="75" height="4" rx="2" fill="rgba(255,255,255,0.25)"/>
+      <!-- AI brain icon -->
+      <circle cx="360" cy="320" r="32" fill="rgba(245,158,11,0.1)" stroke="rgba(245,158,11,0.35)" stroke-width="1.5"/>
+      <text x="360" y="328" text-anchor="middle" font-size="26">🤖</text>
+      <!-- Connection lines -->
+      <line x1="235" y1="290" x2="310" y2="175" stroke="rgba(59,130,246,0.2)" stroke-width="1" stroke-dasharray="5,4"/>
+      <line x1="235" y1="290" x2="335" y2="317" stroke="rgba(245,158,11,0.2)" stroke-width="1" stroke-dasharray="5,4"/>
+      <!-- Floating dots -->
+      <circle cx="80" cy="140" r="4" fill="rgba(59,130,246,0.4)"/>
+      <circle cx="440" cy="200" r="3" fill="rgba(16,185,129,0.5)"/>
+      <circle cx="100" cy="360" r="5" fill="rgba(245,158,11,0.3)"/>
+      <circle cx="420" cy="350" r="4" fill="rgba(59,130,246,0.3)"/>
+    </svg>
+  </div>
+</section>
+
+<section class="features" id="features">
+  <p class="section-label">Características principales</p>
+  <h2 class="section-title">Todo lo que necesitas para estudiar mejor</h2>
+  <p class="section-desc">Una plataforma diseñada para la precisión académica, con tecnología de inteligencia artificial de última generación.</p>
+  <div class="feat-grid">
+    <div class="feat-card">
+      <div class="feat-icon" style="background:#eff6ff;">📚</div>
+      <h3>Biblioteca organizada</h3>
+      <p>Accede a todos los documentos organizados por categoría. Busca, filtra y selecciona exactamente lo que necesitas consultar.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon" style="background:#f0fdf4;">🎯</div>
+      <h3>Respuestas precisas con citas</h3>
+      <p>La IA solo responde basándose en los documentos seleccionados. Cada respuesta incluye el documento y número de página exacto.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon" style="background:#fffbeb;">⚡</div>
+      <h3>Respuesta instantánea</h3>
+      <p>Obtén respuestas en segundos en lugar de buscar manualmente entre decenas de páginas de documentos.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon" style="background:#fef2f2;">🔒</div>
+      <h3>Acceso controlado</h3>
+      <p>Sistema de membresía que garantiza que solo los estudiantes autorizados accedan al contenido de la plataforma.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon" style="background:#f5f3ff;">📝</div>
+      <h3>Historial de consultas</h3>
+      <p>Todas tus consultas quedan guardadas. Vuelve a revisar respuestas anteriores cuando lo necesites.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon" style="background:#ecfdf5;">🌐</div>
+      <h3>Siempre disponible</h3>
+      <p>Accede desde cualquier dispositivo, en cualquier momento. Tu biblioteca de estudio siempre está a un clic.</p>
+    </div>
+  </div>
+</section>
+
+<section class="how" id="como-funciona">
+  <p class="section-label">Proceso</p>
+  <h2 class="section-title">¿Cómo funciona?</h2>
+  <p class="section-desc">En tres simples pasos obtienes respuestas precisas de tus documentos académicos.</p>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <h3>Selecciona documentos</h3>
+      <p>Elige uno o varios PDFs de la biblioteca que son relevantes para tu consulta.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <h3>Haz tu pregunta</h3>
+      <p>Escribe tu pregunta en lenguaje natural, como si le preguntaras a un experto.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <h3>Recibe respuesta citada</h3>
+      <p>Obtén una respuesta precisa con la fuente exacta: documento y número de página.</p>
+    </div>
+  </div>
+</section>
+
+<section class="pricing-prev" id="precios">
+  <p class="section-label" style="color:rgba(255,255,255,.5);">Acceso</p>
+  <h2 class="section-title">Acceso mediante membresía</h2>
+  <p class="section-desc">Solicita acceso al administrador para obtener tu membresía y comenzar a consultar.</p>
+  <div class="price-highlight">Membresía</div>
+  <p class="price-detail">Acceso completo a toda la biblioteca · Consultas ilimitadas · Historial guardado</p>
+  <button class="btn-hero" onclick="openAuth('register')" style="margin:0 auto;">Solicitar acceso →</button>
+</section>
+
+<footer>
+  <div class="l-logo">
+    <div class="l-logo-icon" style="width:28px;height:28px;font-size:14px;">📚</div>
+    <span class="l-logo-text" style="font-size:16px;">BiblioIA</span>
+  </div>
+  <p class="copy">© 2026 BiblioIA — Plataforma Académica con IA</p>
+</footer>
+
+</div><!-- /landing -->
+
+<!-- ═══════════════════ AUTH MODAL ═══════════════════════ -->
+<div class="modal-overlay" id="modal-auth">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeAuth()">✕</button>
+    <div class="modal-logo">
+      <div class="ico">📚</div>
+      <div class="txt">BiblioIA</div>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="form-login">
+      <div class="modal-title">Bienvenido de nuevo</div>
+      <div class="modal-sub">Ingresa a tu cuenta para continuar</div>
+      <div class="auth-error" id="login-error"></div>
+      <div class="form-group"><label>Correo electrónico</label><input type="email" id="login-email" placeholder="correo@ejemplo.com"></div>
+      <div class="form-group"><label>Contraseña</label><input type="password" id="login-pass" placeholder="••••••••"></div>
+      <button class="btn-full" id="btn-login" onclick="doLogin()">Iniciar sesión</button>
+      <div class="auth-toggle">¿No tienes cuenta? <a onclick="toggleAuth('register')">Regístrate aquí</a></div>
+    </div>
+
+    <!-- REGISTER -->
+    <div id="form-register" style="display:none;">
+      <div class="modal-title">Crear cuenta</div>
+      <div class="modal-sub">Completa tus datos para registrarte</div>
+      <div class="auth-error" id="reg-error"></div>
+      <div class="form-group"><label>Nombre completo</label><input type="text" id="reg-nombre" placeholder="Tu nombre completo"></div>
+      <div class="form-group"><label>Correo electrónico</label><input type="email" id="reg-email" placeholder="correo@ejemplo.com"></div>
+      <div class="form-group"><label>Contraseña</label><input type="password" id="reg-pass" placeholder="Mínimo 6 caracteres"></div>
+      <button class="btn-full" id="btn-register" onclick="doRegister()">Crear cuenta</button>
+      <div class="auth-toggle">¿Ya tienes cuenta? <a onclick="toggleAuth('login')">Inicia sesión</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ MAIN APP ═════════════════════════ -->
+<div id="app" style="display:flex;">
+
+  <div class="app-topbar">
+    <div class="top-logo">
+      <div class="ico">📚</div>
+      <div class="txt">BiblioIA</div>
+    </div>
+    <div class="top-user">
+      <span class="top-badge" id="top-badge">Miembro</span>
+      <span class="top-name" id="top-name">Usuario</span>
+      <button class="btn-logout" onclick="doLogout()">Cerrar sesión</button>
+    </div>
+  </div>
+
+  <div class="app-body">
+
+    <!-- SIDEBAR -->
+    <nav class="sidebar" id="sidebar">
+      <!-- Admin nav -->
+      <div id="nav-admin" style="display:none;">
+        <div class="sidebar-label">Administración</div>
+        <div class="nav-item active" data-view="dashboard" onclick="goTo('dashboard')">
+          <span class="ni-icon">📊</span><span class="ni-text">Dashboard</span>
+        </div>
+        <div class="nav-item" data-view="biblioteca-admin" onclick="goTo('biblioteca-admin')">
+          <span class="ni-icon">📚</span><span class="ni-text">Biblioteca</span>
+        </div>
+        <div class="nav-item" data-view="subir-pdf" onclick="goTo('subir-pdf')">
+          <span class="ni-icon">⬆️</span><span class="ni-text">Subir PDF</span>
+        </div>
+        <div class="nav-item" data-view="usuarios" onclick="goTo('usuarios')">
+          <span class="ni-icon">👥</span><span class="ni-text">Usuarios</span>
+        </div>
+        <div class="nav-item" data-view="ajustes" onclick="goTo('ajustes')">
+          <span class="ni-icon">⚙️</span><span class="ni-text">Ajustes</span>
+        </div>
+        <div class="divider" style="border-top:1px solid rgba(255,255,255,.06);margin:8px 0;"></div>
+      </div>
+      <!-- User nav -->
+      <div id="nav-user">
+        <div class="sidebar-label">Consultas</div>
+        <div class="nav-item" data-view="biblioteca-user" onclick="goTo('biblioteca-user')">
+          <span class="ni-icon">📖</span><span class="ni-text">Biblioteca</span>
+        </div>
+        <div class="nav-item" data-view="consultar" onclick="goTo('consultar')">
+          <span class="ni-icon">💬</span><span class="ni-text">Consultar</span>
+        </div>
+        <div class="nav-item" data-view="historial" onclick="goTo('historial')">
+          <span class="ni-icon">🕐</span><span class="ni-text">Historial</span>
+        </div>
+      </div>
+      <div class="sidebar-label" style="margin-top:auto;">Cuenta</div>
+      <div class="nav-item" data-view="perfil" onclick="goTo('perfil')">
+        <span class="ni-icon">👤</span><span class="ni-text">Mi perfil</span>
+      </div>
+    </nav>
+
+    <!-- CONTENT -->
+    <main class="app-main">
+
+      <!-- ── DASHBOARD (admin) ─────────────────────── -->
+      <div class="view active" id="view-dashboard">
+        <div class="page-header">
+          <h2>Dashboard</h2>
+          <p>Resumen general de la plataforma</p>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-box"><div class="sb-icon">📄</div><div class="sb-val" id="stat-pdfs">0</div><div class="sb-lbl">PDFs en biblioteca</div></div>
+          <div class="stat-box"><div class="sb-icon">👥</div><div class="sb-val" id="stat-users">0</div><div class="sb-lbl">Usuarios registrados</div></div>
+          <div class="stat-box"><div class="sb-icon">💬</div><div class="sb-val" id="stat-queries">0</div><div class="sb-lbl">Consultas totales</div></div>
+          <div class="stat-box"><div class="sb-icon">✅</div><div class="sb-val" id="stat-active">0</div><div class="sb-lbl">Miembros activos</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+          <div class="card">
+            <div class="card-title">⚡ Acciones rápidas</div>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <button class="btn-sm btn-blue" style="text-align:left;padding:12px 16px;border-radius:var(--radius-s);font-size:13px;" onclick="goTo('subir-pdf')">⬆️ Subir nuevo PDF</button>
+              <button class="btn-sm btn-gray" style="text-align:left;padding:12px 16px;border-radius:var(--radius-s);font-size:13px;" onclick="goTo('usuarios')">👥 Gestionar usuarios</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">📋 Últimas consultas</div>
+            <div id="dash-last-queries"><div class="empty-state"><p>Sin consultas aún</p></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── BIBLIOTECA ADMIN ──────────────────────── -->
+      <div class="view" id="view-biblioteca-admin">
+        <div class="page-header">
+          <h2>Biblioteca de documentos</h2>
+          <p>Gestiona todos los PDFs disponibles en la plataforma</p>
+        </div>
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+            <div class="card-title" style="margin:0;">📄 Documentos (<span id="admin-pdf-count">0</span>)</div>
+            <button class="btn-sm btn-blue" onclick="goTo('subir-pdf')">⬆️ Subir nuevo</button>
+          </div>
+          <div id="admin-pdf-list">
+            <div class="empty-state"><div class="es-icon">📂</div><p>No hay documentos.<br>Sube el primer PDF.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SUBIR PDF ─────────────────────────────── -->
+      <div class="view" id="view-subir-pdf">
+        <div class="page-header">
+          <h2>Subir nuevo PDF</h2>
+          <p>Agrega un documento a la biblioteca. El texto se extrae automáticamente.</p>
+        </div>
+        <div class="card" style="max-width:680px;">
+          <div class="field-row col2">
+            <div class="field-group">
+              <label>Nombre del documento</label>
+              <input type="text" id="pdf-nombre" placeholder="Ej: Reglamento Interno 2026">
+            </div>
+            <div class="field-group">
+              <label>Categoría</label>
+              <select id="pdf-categoria">
+                <option value="">Seleccionar...</option>
+                <option>Reglamentos</option>
+                <option>Procedimientos</option>
+                <option>Normas</option>
+                <option>Capacitaciones</option>
+                <option>Legislación</option>
+                <option>Manuales</option>
+                <option>Otro</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label>Descripción (opcional)</label>
+              <textarea id="pdf-desc" rows="2" placeholder="Descripción breve del contenido..."></textarea>
+            </div>
+          </div>
+          <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleDrop(event)">
+            <input type="file" id="file-input" accept=".pdf" style="display:none" onchange="handleFileSelect(event)">
+            <div class="uz-icon">📄</div>
+            <h3>Arrastra tu PDF aquí</h3>
+            <p>o haz clic para seleccionar · Solo archivos PDF · Máx. 50MB</p>
+          </div>
+          <div id="upload-preview" style="display:none;margin-top:16px;">
+            <div style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--bg);border-radius:var(--radius-s);border:1px solid var(--border);margin-bottom:12px;">
+              <span style="font-size:28px;">📄</span>
+              <div style="flex:1;">
+                <div style="font-size:13px;font-weight:600;color:var(--navy);" id="upload-filename">archivo.pdf</div>
+                <div style="font-size:11px;color:var(--text-g);" id="upload-filesize"></div>
+              </div>
+              <button onclick="clearFile()" style="background:none;border:none;font-size:18px;color:var(--text-g);cursor:pointer;">✕</button>
+            </div>
+            <div id="upload-progress" style="display:none;">
+              <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-g);margin-bottom:6px;">
+                <span id="progress-label">Extrayendo texto...</span>
+                <span id="progress-pct">0%</span>
+              </div>
+              <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+            </div>
+          </div>
+          <div style="margin-top:20px;display:flex;gap:12px;">
+            <button class="btn-sm btn-blue" id="btn-upload" onclick="uploadPDF()" style="padding:11px 24px;font-size:13px;">⬆️ Procesar y subir PDF</button>
+            <button class="btn-sm btn-gray" onclick="clearFile()" style="padding:11px 24px;font-size:13px;">Cancelar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── USUARIOS (admin) ──────────────────────── -->
+      <div class="view" id="view-usuarios">
+        <div class="page-header">
+          <h2>Gestión de usuarios</h2>
+          <p>Administra el acceso de los miembros a la plataforma</p>
+        </div>
+        <div class="card">
+          <table class="data-table" id="users-table">
+            <thead><tr><th>Usuario</th><th>Email</th><th>Plan</th><th>Registro</th><th>Acciones</th></tr></thead>
+            <tbody id="users-tbody"><tr><td colspan="5" style="text-align:center;color:var(--text-g);padding:30px;">Cargando usuarios...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── AJUSTES (admin) ─────────────────────────── -->
+      <div class="view" id="view-ajustes">
+        <div class="page-header">
+          <h2>Ajustes</h2>
+          <p>Configuración de la plataforma</p>
+        </div>
+        <div class="card" style="max-width:560px;">
+          <div class="card-title">🔑 Clave API de Claude (IA)</div>
+          <p style="font-size:13px;color:var(--text-g);margin-bottom:16px;">Esta clave se guarda en Firebase y permite que la IA responda consultas. No se muestra en el código fuente.</p>
+          <div class="field-group" style="margin-bottom:16px;">
+            <label>API Key</label>
+            <input type="password" id="claude-key-input" placeholder="sk-ant-api03-..." style="font-family:monospace;">
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;">
+            <button class="btn-sm btn-blue" onclick="saveClaudeKey()" style="padding:10px 20px;">💾 Guardar clave</button>
+            <span id="key-status" style="font-size:12px;color:var(--text-g);"></span>
+          </div>
+          <div style="margin-top:20px;padding:14px;background:#fffbeb;border:1px solid #fde68a;border-radius:var(--radius-s);">
+            <div style="font-size:11px;font-weight:700;color:var(--gold-d);margin-bottom:4px;">ℹ️ Estado actual</div>
+            <div style="font-size:12px;color:#92400e;" id="key-loaded-status">Verificando...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── BIBLIOTECA USUARIO ────────────────────── -->
+      <div class="view" id="view-biblioteca-user">
+        <div class="page-header">
+          <h2>Biblioteca</h2>
+          <p>Explora los documentos disponibles para consultar</p>
+        </div>
+        <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+          <input type="text" id="lib-search" placeholder="🔍 Buscar documento..." style="flex:1;min-width:200px;padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius-s);font-size:13px;outline:none;font-family:inherit;" oninput="filterLibrary()">
+          <select id="lib-filter" onchange="filterLibrary()" style="padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius-s);font-size:13px;outline:none;font-family:inherit;color:var(--text);">
+            <option value="">Todas las categorías</option>
+          </select>
+        </div>
+        <div id="lib-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;">
+          <div class="empty-state"><div class="es-icon">📂</div><p>Cargando biblioteca...</p></div>
+        </div>
+      </div>
+
+      <!-- ── CONSULTAR ─────────────────────────────── -->
+      <div class="view" id="view-consultar">
+        <div class="page-header">
+          <h2>Consultar documentos</h2>
+          <p>Selecciona los documentos y escribe tu pregunta</p>
+        </div>
+        <div class="query-layout">
+          <div>
+            <div class="pdf-selector">
+              <div class="pdf-selector-head">📄 Seleccionar documentos</div>
+              <div id="pdf-selector-list">
+                <div style="padding:20px;text-align:center;color:var(--text-g);font-size:13px;">Cargando...</div>
+              </div>
+            </div>
+            <div style="margin-top:10px;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:var(--radius-s);">
+              <div style="font-size:11px;font-weight:700;color:var(--gold-d);margin-bottom:4px;">⚠️ Precisión máxima</div>
+              <div style="font-size:11px;color:#92400e;line-height:1.5;">Las respuestas se basan únicamente en los documentos seleccionados. Si la respuesta no está en los documentos, se indica explícitamente.</div>
+            </div>
+          </div>
+          <div class="chat-area" id="chat-area">
+            <div class="chat-head">
+              <span style="font-size:20px;">🤖</span>
+              <div>
+                <h3>Asistente Académico</h3>
+                <div style="font-size:11px;color:var(--text-g);">Responde solo desde los documentos seleccionados</div>
+              </div>
+            </div>
+            <div class="chat-messages" id="chat-messages">
+              <div class="msg msg-ai">Hola, soy tu asistente académico. Selecciona uno o más documentos de la izquierda y luego escribe tu pregunta. Responderé con citas exactas de página y documento.</div>
+            </div>
+            <div class="chat-input-area">
+              <div class="chat-input-row">
+                <textarea id="chat-input" rows="2" placeholder="Escribe tu pregunta aquí..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendQuery();}"></textarea>
+                <button class="btn-send" id="btn-send" onclick="sendQuery()">Enviar ↑</button>
+              </div>
+              <div class="chat-hint">Enter para enviar · Shift+Enter para nueva línea</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── HISTORIAL ─────────────────────────────── -->
+      <div class="view" id="view-historial">
+        <div class="page-header">
+          <h2>Historial de consultas</h2>
+          <p>Todas tus preguntas y respuestas guardadas</p>
+        </div>
+        <div id="historial-list">
+          <div class="empty-state"><div class="es-icon">💬</div><p>Aún no tienes consultas.<br>Ve a Consultar para comenzar.</p></div>
+        </div>
+      </div>
+
+      <!-- ── PERFIL ────────────────────────────────── -->
+      <div class="view" id="view-perfil">
+        <div class="page-header">
+          <h2>Mi perfil</h2>
+          <p>Información de tu cuenta</p>
+        </div>
+        <div class="card" style="max-width:480px;">
+          <div style="display:flex;align-items:center;gap:18px;margin-bottom:24px;">
+            <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--blue-l),var(--blue));display:flex;align-items:center;justify-content:center;font-size:28px;color:#fff;font-weight:700;" id="perfil-avatar">?</div>
+            <div>
+              <div style="font-size:18px;font-weight:700;color:var(--navy);" id="perfil-nombre">—</div>
+              <div style="font-size:13px;color:var(--text-g);" id="perfil-email">—</div>
+            </div>
+          </div>
+          <div class="divider"></div>
+          <div style="display:flex;flex-direction:column;gap:14px;margin-top:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:13px;color:var(--text-g);">Plan actual</span>
+              <span class="badge badge-blue" id="perfil-plan">—</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:13px;color:var(--text-g);">Fecha de registro</span>
+              <span style="font-size:13px;font-weight:600;color:var(--navy);" id="perfil-fecha">—</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:13px;color:var(--text-g);">Consultas realizadas</span>
+              <span style="font-size:13px;font-weight:600;color:var(--navy);" id="perfil-queries">0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ═══════════════════ JAVASCRIPT ════════════════════ -->
+<script>
+// ╔══════════════════════════════════════════════════════════╗
+// ║  CONFIGURACIÓN — Modifica estos valores antes de usar   ║
+// ╚══════════════════════════════════════════════════════════╝
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyA-uCb3WFck_bzOOEka0ZRfRyUOEOI3V8g",
+  authDomain:        "maahia.firebaseapp.com",
+  databaseURL:       "https://maahia-default-rtdb.firebaseio.com",
+  projectId:         "maahia",
+  storageBucket:     "maahia.firebasestorage.app",
+  messagingSenderId: "242315685393",
+  appId:             "1:242315685393:web:ac8c7a32eb88caeed68bb0"
+};
+let CLAUDE_API_KEY = ""; // Se carga desde Firebase al iniciar sesión como admin
+const ADMIN_EMAIL    = "marcoaraya1973@gmail.com";        // Email del administrador
+const DB_PATH        = "biblioteca_maah";                 // Ruta raíz en Firebase
+
+// ── Firebase init ─────────────────────────────────────────
+let db, auth, currentUser = null, isAdmin = false;
+let allPdfs = [];
+
+try {
+  firebase.initializeApp(FIREBASE_CONFIG);
+  db   = firebase.database();
+  auth = firebase.auth();
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+} catch(e) {
+  console.warn('Firebase no configurado:', e.message);
+}
+
+// ── PDF.js worker ─────────────────────────────────────────
+if(typeof pdfjsLib !== 'undefined'){
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+// ══ AUTH ══════════════════════════════════════════════════
+auth && auth.onAuthStateChanged(async user => {
+  if(user){
+    currentUser = user;
+    isAdmin = user.email === ADMIN_EMAIL;
+    await ensureUserRecord(user);
+    showApp();
+    await loadClaudeKey();
+    loadAllData();
+  } else {
+    currentUser = null;
+    showLanding();
+  }
+});
+
+function openAuth(mode){ document.getElementById('modal-auth').classList.add('open'); toggleAuth(mode); }
+function closeAuth(){ document.getElementById('modal-auth').classList.remove('open'); }
+function toggleAuth(mode){
+  document.getElementById('form-login').style.display    = mode==='login'    ? '' : 'none';
+  document.getElementById('form-register').style.display = mode==='register' ? '' : 'none';
+}
+
+async function doLogin(){
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('login-error');
+  const btn   = document.getElementById('btn-login');
+  errEl.classList.remove('show');
+  if(!email||!pass){ showErr(errEl,'Completa todos los campos.'); return; }
+  btn.disabled=true; btn.textContent='Ingresando...';
+  try {
+    await auth.signInWithEmailAndPassword(email, pass);
+    closeAuth();
+  } catch(e) {
+    showErr(errEl, mapAuthError(e.code));
+  } finally { btn.disabled=false; btn.textContent='Iniciar sesión'; }
+}
+
+async function doRegister(){
+  const nombre = document.getElementById('reg-nombre').value.trim();
+  const email  = document.getElementById('reg-email').value.trim();
+  const pass   = document.getElementById('reg-pass').value;
+  const errEl  = document.getElementById('reg-error');
+  const btn    = document.getElementById('btn-register');
+  errEl.classList.remove('show');
+  if(!nombre||!email||!pass){ showErr(errEl,'Completa todos los campos.'); return; }
+  if(pass.length < 6){ showErr(errEl,'La contraseña debe tener al menos 6 caracteres.'); return; }
+  btn.disabled=true; btn.textContent='Creando cuenta...';
+  try {
+    const cred = await auth.createUserWithEmailAndPassword(email, pass);
+    await ensureUserRecord(cred.user, nombre);
+    closeAuth();
+    showToast('Cuenta creada. Bienvenido/a 🎉');
+  } catch(e) {
+    showErr(errEl, mapAuthError(e.code));
+  } finally { btn.disabled=false; btn.textContent='Crear cuenta'; }
+}
+
+function doLogout(){ auth.signOut(); }
+
+function loadAjustes(){
+  const statusEl = document.getElementById('key-loaded-status');
+  if(CLAUDE_API_KEY) {
+    statusEl.textContent = '✅ Clave cargada y activa — la IA puede responder consultas.';
+    statusEl.style.color = 'var(--green)';
+  } else {
+    statusEl.textContent = '⚠️ No hay clave configurada — ingresa tu API Key de Claude arriba.';
+    statusEl.style.color = 'var(--red)';
+  }
+}
+
+async function saveClaudeKey(){
+  const key = document.getElementById('claude-key-input').value.trim();
+  const statusEl = document.getElementById('key-status');
+  if(!key.startsWith('sk-ant-')){ showToast('La clave debe empezar con sk-ant-','red'); return; }
+  try {
+    await db.ref(`${DB_PATH}/config/claudeKey`).set(key);
+    CLAUDE_API_KEY = key;
+    statusEl.textContent = '✅ Guardada';
+    statusEl.style.color = 'var(--green)';
+    document.getElementById('claude-key-input').value = '';
+    document.getElementById('key-loaded-status').textContent = '✅ Clave cargada y activa — la IA puede responder consultas.';
+    document.getElementById('key-loaded-status').style.color = 'var(--green)';
+    showToast('Clave API guardada correctamente ✓','green');
+  } catch(e){ showToast('Error al guardar: '+e.message,'red'); }
+}
+
+async function loadClaudeKey(){
+  try {
+    const snap = await db.ref(`${DB_PATH}/config/claudeKey`).once('value');
+    if(snap.val()) CLAUDE_API_KEY = snap.val();
+  } catch(e){ console.warn('No se pudo cargar Claude key:', e); }
+}
+
+async function ensureUserRecord(user, nombre=''){
+  const snap = await db.ref(`${DB_PATH}/usuarios/${user.uid}`).once('value');
+  if(!snap.exists()){
+    await db.ref(`${DB_PATH}/usuarios/${user.uid}`).set({
+      nombre: nombre || user.displayName || user.email.split('@')[0],
+      email: user.email,
+      plan: 'inactivo',
+      rol: user.email === ADMIN_EMAIL ? 'admin' : 'usuario',
+      fechaRegistro: new Date().toISOString(),
+      consultas: 0
+    });
+  }
+}
+
+function mapAuthError(code){
+  const m = { 'auth/invalid-email':'Email inválido.','auth/user-not-found':'Usuario no encontrado.','auth/wrong-password':'Contraseña incorrecta.','auth/email-already-in-use':'Ese email ya está registrado.','auth/weak-password':'Contraseña muy débil.' };
+  return m[code] || 'Error al autenticar. Intenta nuevamente.';
+}
+function showErr(el, msg){ el.textContent=msg; el.classList.add('show'); }
+
+// ══ NAVIGATION ════════════════════════════════════════════
+function showLanding(){
+  document.getElementById('landing').style.display='block';
+  document.getElementById('app').style.display='none';
+}
+function showApp(){
+  document.getElementById('landing').style.display='none';
+  document.getElementById('app').style.display='flex';
+  document.getElementById('nav-admin').style.display = isAdmin ? '' : 'none';
+  document.getElementById('top-badge').textContent = isAdmin ? 'Admin' : 'Miembro';
+  document.getElementById('top-badge').className = isAdmin ? 'top-badge admin' : 'top-badge';
+  db.ref(`${DB_PATH}/usuarios/${currentUser.uid}`).once('value').then(snap=>{
+    const u = snap.val()||{};
+    document.getElementById('top-name').textContent = u.nombre || currentUser.email;
+  });
+  if(isAdmin) goTo('dashboard'); else goTo('biblioteca-user');
+}
+
+function goTo(view){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const el = document.getElementById(`view-${view}`);
+  if(el) el.classList.add('active');
+  document.querySelectorAll(`.nav-item[data-view="${view}"]`).forEach(n=>n.classList.add('active'));
+  if(view==='biblioteca-admin') loadAdminPdfs();
+  if(view==='usuarios') loadUsers();
+  if(view==='biblioteca-user') loadUserLibrary();
+  if(view==='consultar') loadPdfSelector();
+  if(view==='historial') loadHistorial();
+  if(view==='perfil') loadPerfil();
+  if(view==='dashboard') loadDashboard();
+  if(view==='ajustes') loadAjustes();
+}
+
+// ══ LOAD ALL DATA ═════════════════════════════════════════
+function loadAllData(){
+  db.ref(`${DB_PATH}/pdfs`).on('value', snap=>{
+    allPdfs = [];
+    const data = snap.val()||{};
+    Object.entries(data).forEach(([id,p])=>{ if(p) allPdfs.push({id,...p}); });
+    allPdfs.sort((a,b)=>new Date(b.fechaSubida||0)-new Date(a.fechaSubida||0));
+  });
+}
+
+// ══ DASHBOARD ═════════════════════════════════════════════
+function loadDashboard(){
+  db.ref(`${DB_PATH}/pdfs`).once('value', s=>{
+    const pdfs = s.val()||{};
+    document.getElementById('stat-pdfs').textContent = Object.keys(pdfs).length;
+  });
+  db.ref(`${DB_PATH}/usuarios`).once('value', s=>{
+    const users = s.val()||{};
+    document.getElementById('stat-users').textContent = Object.keys(users).length;
+    document.getElementById('stat-active').textContent = Object.values(users).filter(u=>u&&(u.plan==='activo'||u.rol==='admin')).length;
+  });
+  db.ref(`${DB_PATH}/consultas`).once('value', s=>{
+    const qs = s.val()||{};
+    let total = 0;
+    Object.values(qs).forEach(userQs=>{ if(userQs) total += Object.keys(userQs).length; });
+    document.getElementById('stat-queries').textContent = total;
+    // Last queries
+    const lastQs = [];
+    Object.entries(qs).forEach(([uid,userQs])=>{
+      if(userQs) Object.entries(userQs).forEach(([qid,q])=>{ if(q) lastQs.push(q); });
+    });
+    lastQs.sort((a,b)=>new Date(b.fecha||0)-new Date(a.fecha||0));
+    const el = document.getElementById('dash-last-queries');
+    if(!lastQs.length){ el.innerHTML='<p style="font-size:13px;color:var(--text-g);">Sin consultas aún</p>'; return; }
+    el.innerHTML = lastQs.slice(0,4).map(q=>`
+      <div style="padding:10px 0;border-bottom:1px solid var(--border);">
+        <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:2px;">${(q.pregunta||'').slice(0,70)}${(q.pregunta||'').length>70?'...':''}</div>
+        <div style="font-size:11px;color:var(--text-g);">${fmtDate(q.fecha)}</div>
+      </div>`).join('');
+  });
+}
+
+// ══ PDF UPLOAD ════════════════════════════════════════════
+let selectedFile = null;
+
+function handleFileSelect(e){ setFile(e.target.files[0]); }
+function handleDrop(e){
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if(file && file.type==='application/pdf') setFile(file);
+  else showToast('Solo se aceptan archivos PDF.','red');
+}
+function setFile(file){
+  if(!file) return;
+  if(file.type !== 'application/pdf'){ showToast('Solo PDFs.','red'); return; }
+  if(file.size > 52428800){ showToast('El archivo es demasiado grande (máx. 50MB).','red'); return; }
+  selectedFile = file;
+  document.getElementById('upload-preview').style.display='';
+  document.getElementById('upload-zone').style.display='none';
+  document.getElementById('upload-filename').textContent = file.name;
+  document.getElementById('upload-filesize').textContent = (file.size/1024/1024).toFixed(2)+' MB';
+}
+function clearFile(){
+  selectedFile = null;
+  document.getElementById('upload-preview').style.display='none';
+  document.getElementById('upload-zone').style.display='';
+  document.getElementById('file-input').value='';
+  document.getElementById('upload-progress').style.display='none';
+  document.getElementById('progress-fill').style.width='0%';
+}
+
+async function uploadPDF(){
+  if(!selectedFile){ showToast('Selecciona un archivo PDF.','red'); return; }
+  const nombre = document.getElementById('pdf-nombre').value.trim();
+  const cat    = document.getElementById('pdf-categoria').value;
+  const desc   = document.getElementById('pdf-desc').value.trim();
+  if(!nombre){ showToast('Ingresa el nombre del documento.','red'); return; }
+  if(!cat){ showToast('Selecciona una categoría.','red'); return; }
+
+  const btn = document.getElementById('btn-upload');
+  btn.disabled=true; btn.textContent='Procesando...';
+  document.getElementById('upload-progress').style.display='';
+  setProgress(5,'Leyendo PDF...');
+
+  try {
+    // 1. Extraer texto con PDF.js
+    const arrayBuffer = await selectedFile.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const totalPages = pdf.numPages;
+    const textos = {};
+    for(let i=1;i<=totalPages;i++){
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      textos[i-1] = content.items.map(s=>s.str).join(' ');
+      setProgress(5 + Math.round((i/totalPages)*60), `Extrayendo texto — página ${i} de ${totalPages}`);
+    }
+    setProgress(70,'Guardando en base de datos...');
+
+    // 2. Guardar en Firebase
+    const newRef = db.ref(`${DB_PATH}/pdfs`).push();
+    const pdfData = {
+      id: newRef.key,
+      nombre, categoria: cat, descripcion: desc,
+      paginas: totalPages,
+      fechaSubida: new Date().toISOString(),
+      subidoPor: currentUser.email,
+      texto: textos
+    };
+    await newRef.set(pdfData);
+    setProgress(100,'¡Listo!');
+
+    setTimeout(()=>{
+      showToast(`"${nombre}" subido correctamente ✓`,'green');
+      clearFile();
+      document.getElementById('pdf-nombre').value='';
+      document.getElementById('pdf-categoria').value='';
+      document.getElementById('pdf-desc').value='';
+      btn.disabled=false; btn.textContent='⬆️ Procesar y subir PDF';
+      document.getElementById('upload-progress').style.display='none';
+      goTo('biblioteca-admin');
+    }, 800);
+  } catch(e) {
+    console.error(e);
+    showToast('Error al procesar el PDF: '+e.message,'red');
+    btn.disabled=false; btn.textContent='⬆️ Procesar y subir PDF';
+    document.getElementById('upload-progress').style.display='none';
+  }
+}
+
+function setProgress(pct, label){
+  document.getElementById('progress-fill').style.width=pct+'%';
+  document.getElementById('progress-pct').textContent=pct+'%';
+  document.getElementById('progress-label').textContent=label;
+}
+
+// ══ ADMIN LIBRARY ═════════════════════════════════════════
+function loadAdminPdfs(){
+  const el = document.getElementById('admin-pdf-list');
+  const count = document.getElementById('admin-pdf-count');
+  if(!allPdfs.length){ el.innerHTML='<div class="empty-state"><div class="es-icon">📂</div><p>No hay documentos.<br>Sube el primer PDF.</p></div>'; count.textContent='0'; return; }
+  count.textContent = allPdfs.length;
+  el.innerHTML=`<table class="data-table"><thead><tr><th>Documento</th><th>Categoría</th><th>Páginas</th><th>Subido</th><th>Acciones</th></tr></thead><tbody>
+    ${allPdfs.map(p=>`<tr>
+      <td><div style="font-weight:600;color:var(--navy);">${p.nombre||'Sin nombre'}</div><div style="font-size:11px;color:var(--text-g);">${p.descripcion||''}</div></td>
+      <td><span class="badge badge-blue">${p.categoria||'—'}</span></td>
+      <td>${p.paginas||'?'} pág.</td>
+      <td>${fmtDate(p.fechaSubida)}</td>
+      <td><button class="btn-sm btn-red" onclick="deletePdf('${p.id}','${(p.nombre||'').replace(/'/g,"\\'")}')">Eliminar</button></td>
+    </tr>`).join('')}
+  </tbody></table>`;
+}
+
+async function deletePdf(id, nombre){
+  if(!confirm(`¿Eliminar "${nombre}"?\n\nEsta acción no se puede deshacer.`)) return;
+  try {
+    await db.ref(`${DB_PATH}/pdfs/${id}`).remove();
+    showToast('Documento eliminado.','green');
+    loadAdminPdfs();
+  } catch(e){ showToast('Error al eliminar.','red'); }
+}
+
+// ══ USERS MANAGEMENT ══════════════════════════════════════
+function loadUsers(){
+  db.ref(`${DB_PATH}/usuarios`).once('value', snap=>{
+    const users = snap.val()||{};
+    const tbody = document.getElementById('users-tbody');
+    const arr = Object.entries(users).map(([uid,u])=>({uid,...u}));
+    if(!arr.length){ tbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--text-g);padding:30px;">Sin usuarios registrados</td></tr>'; return; }
+    tbody.innerHTML = arr.map(u=>`
+      <tr>
+        <td><div style="font-weight:600;color:var(--navy);">${u.nombre||'—'}</div><div style="font-size:11px;color:var(--text-g);">${u.rol==='admin'?'👑 Admin':'Usuario'}</div></td>
+        <td style="font-size:12px;">${u.email||'—'}</td>
+        <td>${u.plan==='activo'||u.rol==='admin'?'<span class="badge badge-green">Activo</span>':'<span class="badge badge-red">Inactivo</span>'}</td>
+        <td style="font-size:12px;">${fmtDate(u.fechaRegistro)}</td>
+        <td>${u.rol!=='admin'?`<button class="btn-sm ${u.plan==='activo'?'btn-gray':'btn-green'}" onclick="toggleUserPlan('${u.uid}','${u.plan}')">${u.plan==='activo'?'Desactivar':'Activar'}</button>`:'<span style="font-size:11px;color:var(--text-g);">Admin</span>'}</td>
+      </tr>`).join('');
+  });
+}
+
+async function toggleUserPlan(uid, currentPlan){
+  const newPlan = currentPlan === 'activo' ? 'inactivo' : 'activo';
+  await db.ref(`${DB_PATH}/usuarios/${uid}/plan`).set(newPlan);
+  showToast(`Plan ${newPlan==='activo'?'activado':'desactivado'}.`,'green');
+  loadUsers();
+}
+
+// ══ USER LIBRARY ══════════════════════════════════════════
+function loadUserLibrary(){
+  renderLibraryGrid(allPdfs);
+  buildCategoryFilter();
+}
+function buildCategoryFilter(){
+  const sel = document.getElementById('lib-filter');
+  const cats = [...new Set(allPdfs.map(p=>p.categoria).filter(Boolean))];
+  sel.innerHTML = '<option value="">Todas las categorías</option>' + cats.map(c=>`<option>${c}</option>`).join('');
+}
+function filterLibrary(){
+  const q = document.getElementById('lib-search').value.toLowerCase();
+  const cat = document.getElementById('lib-filter').value;
+  const filtered = allPdfs.filter(p=>{
+    const matchQ = !q || (p.nombre||'').toLowerCase().includes(q) || (p.descripcion||'').toLowerCase().includes(q);
+    const matchC = !cat || p.categoria===cat;
+    return matchQ && matchC;
+  });
+  renderLibraryGrid(filtered);
+}
+function renderLibraryGrid(pdfs){
+  const el = document.getElementById('lib-grid');
+  if(!pdfs.length){ el.innerHTML='<div class="empty-state" style="grid-column:1/-1;"><div class="es-icon">🔍</div><p>No se encontraron documentos.</p></div>'; return; }
+  el.innerHTML = pdfs.map(p=>`
+    <div style="background:#fff;border-radius:var(--radius);padding:22px;border:1px solid var(--border);box-shadow:var(--shadow);transition:var(--tr);cursor:pointer;" onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='var(--shadow-l)'" onmouseleave="this.style.transform='';this.style.boxShadow='var(--shadow)'">
+      <div style="font-size:36px;margin-bottom:12px;">📄</div>
+      <div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:6px;line-height:1.3;">${p.nombre||'Sin nombre'}</div>
+      <div style="font-size:12px;color:var(--text-g);margin-bottom:10px;line-height:1.5;">${p.descripcion||''}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+        <span class="badge badge-blue">${p.categoria||'Sin categoría'}</span>
+        <span class="badge" style="background:#f1f5f9;color:var(--text-g);">${p.paginas||'?'} pág.</span>
+      </div>
+      <button class="btn-sm btn-blue" style="width:100%;" onclick="goToConsultarWith('${p.id}')">💬 Consultar</button>
+    </div>`).join('');
+}
+function goToConsultarWith(pdfId){
+  goTo('consultar');
+  setTimeout(()=>{
+    const chk = document.getElementById(`chk-pdf-${pdfId}`);
+    if(chk){ chk.checked=true; }
+  }, 200);
+}
+
+// ══ PDF SELECTOR ══════════════════════════════════════════
+function loadPdfSelector(){
+  const el = document.getElementById('pdf-selector-list');
+  if(!allPdfs.length){ el.innerHTML='<div style="padding:20px;text-align:center;color:var(--text-g);font-size:13px;">Sin documentos disponibles.</div>'; return; }
+  el.innerHTML = allPdfs.map(p=>`
+    <div class="pdf-item">
+      <input type="checkbox" id="chk-pdf-${p.id}" value="${p.id}">
+      <div class="pi-info">
+        <div class="pi-name">${p.nombre||'Sin nombre'}</div>
+        <div class="pi-cat">${p.categoria||''} · ${p.paginas||'?'} pág.</div>
+      </div>
+    </div>`).join('');
+}
+
+// ══ CLAUDE QUERY ══════════════════════════════════════════
+const SYSTEM_PROMPT = `Eres un asistente académico de alta precisión. Tu ÚNICA función es responder preguntas basándote EXCLUSIVAMENTE en los documentos proporcionados.
+
+REGLAS ABSOLUTAS:
+1. NUNCA uses conocimiento externo. Solo usa la información de los documentos.
+2. Si la información no está en los documentos, responde EXACTAMENTE: "Esta información no se encuentra en los documentos seleccionados."
+3. SIEMPRE cita la fuente con el formato: [Archivo: nombre.pdf | Página: X]
+4. Incluye el fragmento exacto del texto donde encontraste la información.
+5. Si hay información en múltiples páginas, cita todas las fuentes relevantes.
+6. Sé preciso, claro y académicamente correcto.
+7. Estructura tu respuesta:
+   📋 RESPUESTA: [respuesta directa y clara]
+   📄 FUENTE: [Archivo: X | Página: Y]
+   💬 FRAGMENTO: "[cita textual del documento]"`;
+
+async function sendQuery(){
+  const input = document.getElementById('chat-input');
+  const pregunta = input.value.trim();
+  if(!pregunta) return;
+  const selected = [...document.querySelectorAll('#pdf-selector-list input:checked')].map(c=>c.value);
+  if(!selected.length){ showToast('Selecciona al menos un documento.','red'); return; }
+
+  // Check plan
+  const userSnap = await db.ref(`${DB_PATH}/usuarios/${currentUser.uid}`).once('value');
+  const userData = userSnap.val()||{};
+  if(userData.plan !== 'activo' && userData.rol !== 'admin'){
+    showToast('Tu cuenta no tiene membresía activa. Contacta al administrador.','red'); return;
+  }
+
+  input.value='';
+  const btn = document.getElementById('btn-send');
+  btn.disabled=true;
+
+  // Mostrar pregunta del usuario
+  appendMessage('user', pregunta);
+
+  // Mostrar typing
+  const typingId = appendTyping();
+
+  try {
+    // Cargar texto de los PDFs seleccionados
+    const textoContexto = await buildContext(selected);
+
+    // Llamar Claude API
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': CLAUDE_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-calls': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 2000,
+        system: SYSTEM_PROMPT,
+        messages: [{
+          role: 'user',
+          content: `DOCUMENTOS DISPONIBLES:\n\n${textoContexto}\n\n---\n\nPREGUNTA DEL ESTUDIANTE:\n${pregunta}`
+        }]
+      })
+    });
+    if(!resp.ok){ const err=await resp.json(); throw new Error(err.error?.message||'Error API'); }
+    const data = await resp.json();
+    const respuesta = data.content[0].text;
+
+    removeTyping(typingId);
+    appendMessage('ai', respuesta);
+
+    // Guardar en historial
+    const pdfNames = selected.map(id=>{ const p=allPdfs.find(pp=>pp.id===id); return p?.nombre||id; });
+    await db.ref(`${DB_PATH}/consultas/${currentUser.uid}`).push({
+      pregunta, respuesta,
+      pdfs: pdfNames,
+      fecha: new Date().toISOString()
+    });
+    // Incrementar contador
+    db.ref(`${DB_PATH}/usuarios/${currentUser.uid}/consultas`).transaction(v=>(v||0)+1);
+
+  } catch(e) {
+    removeTyping(typingId);
+    appendMessage('ai', `⚠️ Error al consultar: ${e.message}\n\nVerifica que la API Key de Claude esté configurada correctamente.`);
+  }
+  btn.disabled=false;
+}
+
+async function buildContext(pdfIds){
+  let ctx = '';
+  for(const id of pdfIds){
+    const pdf = allPdfs.find(p=>p.id===id);
+    if(!pdf) continue;
+    ctx += `\n══════════════════════════════\n`;
+    ctx += `DOCUMENTO: "${pdf.nombre}"\n`;
+    ctx += `Categoría: ${pdf.categoria||'—'} | Total páginas: ${pdf.paginas||'?'}\n`;
+    ctx += `══════════════════════════════\n`;
+    // Cargar texto desde Firebase
+    const snap = await db.ref(`${DB_PATH}/pdfs/${id}/texto`).once('value');
+    const textos = snap.val()||{};
+    Object.entries(textos).forEach(([idx,txt])=>{
+      const pageNum = parseInt(idx)+1;
+      ctx += `[PÁGINA ${pageNum}]\n${txt}\n\n`;
+    });
+  }
+  return ctx;
+}
+
+function appendMessage(role, text){
+  const messages = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = `msg msg-${role}`;
+  div.textContent = text;
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+  return div;
+}
+function appendTyping(){
+  const messages = document.getElementById('chat-messages');
+  const id = 'typing-'+Date.now();
+  const div = document.createElement('div');
+  div.id=id; div.className='msg msg-ai';
+  div.innerHTML='<div class="typing"><span></span><span></span><span></span></div>';
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+  return id;
+}
+function removeTyping(id){ const el=document.getElementById(id); if(el) el.remove(); }
+
+// ══ HISTORIAL ═════════════════════════════════════════════
+function loadHistorial(){
+  const el = document.getElementById('historial-list');
+  el.innerHTML = '<div class="empty-state"><div class="es-icon">⏳</div><p>Cargando...</p></div>';
+  db.ref(`${DB_PATH}/consultas/${currentUser.uid}`).orderByChild('fecha').once('value', snap=>{
+    const data = snap.val()||{};
+    const qs = Object.values(data).reverse();
+    if(!qs.length){ el.innerHTML='<div class="empty-state"><div class="es-icon">💬</div><p>Aún no tienes consultas.<br>Ve a Consultar para comenzar.</p></div>'; return; }
+    el.innerHTML = qs.map(q=>`
+      <div class="hist-item">
+        <div class="hist-q">❓ ${q.pregunta||''}</div>
+        <div class="hist-a">${q.respuesta||''}</div>
+        <div class="hist-meta">
+          <span class="hist-date">🕐 ${fmtDate(q.fecha)}</span>
+          ${(q.pdfs||[]).map(n=>`<span class="hist-pdf">📄 ${n}</span>`).join('')}
+        </div>
+      </div>`).join('');
+  });
+}
+
+// ══ PERFIL ════════════════════════════════════════════════
+function loadPerfil(){
+  db.ref(`${DB_PATH}/usuarios/${currentUser.uid}`).once('value', snap=>{
+    const u = snap.val()||{};
+    document.getElementById('perfil-nombre').textContent = u.nombre||'—';
+    document.getElementById('perfil-email').textContent = currentUser.email;
+    document.getElementById('perfil-avatar').textContent = (u.nombre||'?').charAt(0).toUpperCase();
+    document.getElementById('perfil-fecha').textContent = fmtDate(u.fechaRegistro);
+    document.getElementById('perfil-queries').textContent = u.consultas||0;
+    const planEl = document.getElementById('perfil-plan');
+    if(u.rol==='admin'){ planEl.textContent='Administrador'; planEl.className='badge badge-green'; }
+    else if(u.plan==='activo'){ planEl.textContent='Miembro Activo'; planEl.className='badge badge-green'; }
+    else { planEl.textContent='Inactivo'; planEl.className='badge badge-red'; }
+  });
+}
+
+// ══ UTILS ════════════════════════════════════════════════
+function fmtDate(iso){
+  if(!iso) return '—';
+  try {
+    const d=new Date(iso);
+    return d.toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'});
+  } catch(e){ return '—'; }
+}
+function showToast(msg, type=''){
+  const t = document.getElementById('toast');
+  t.textContent=msg;
+  t.className='toast show'+(type?' '+type:'');
+  setTimeout(()=>{ t.className='toast'; }, 3200);
+}
+
+// Particles animation in hero
+(function initParticles(){
+  const c = document.getElementById('particles-container');
+  if(!c) return;
+  const colors = ['rgba(59,130,246,.15)','rgba(245,158,11,.1)','rgba(16,185,129,.1)'];
+  for(let i=0;i<18;i++){
+    const el = document.createElement('div');
+    el.className='particle';
+    const size = 4 + Math.random()*12;
+    el.style.cssText = `width:${size}px;height:${size}px;left:${Math.random()*100}%;top:${Math.random()*100}%;background:${colors[Math.floor(Math.random()*colors.length)]};animation-delay:${Math.random()*6}s;animation-duration:${6+Math.random()*6}s;`;
+    c.appendChild(el);
+  }
+})();
+
+// ── Smooth scroll para nav links ──
+document.querySelectorAll('.l-nav-links a[href^="#"]').forEach(a=>{
+  a.addEventListener('click',e=>{
+    e.preventDefault();
+    document.querySelector(a.getAttribute('href'))?.scrollIntoView({behavior:'smooth'});
+  });
+});
+
+// Enter en login/register
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter' && document.getElementById('modal-auth').classList.contains('open')){
+    if(document.getElementById('form-login').style.display!=='none') doLogin();
+    else doRegister();
+  }
+});
+</script>
+</body>
+</html>
