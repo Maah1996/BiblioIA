@@ -192,6 +192,10 @@ footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
 .data-table td{padding:12px 14px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle;}
 .data-table tr:hover td{background:#fafbff;}
 .data-table tr:last-child td{border-bottom:none;}
+.data-table tr.row-selected td{background:#eff6ff;}
+.row-cb{width:16px;height:16px;cursor:pointer;accent-color:var(--blue);}
+.bulk-bar{display:none;align-items:center;gap:12px;padding:10px 16px;background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:var(--radius-s);margin-bottom:14px;}
+.bulk-bar.show{display:flex;}
 
 /* UPLOAD AREA */
 .upload-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:48px;text-align:center;cursor:pointer;transition:var(--tr);}
@@ -837,6 +841,19 @@ footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
+<!-- MODAL CONFIRMAR ELIMINACIÓN -->
+<div id="modal-confirm" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,22,40,.55);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;padding:32px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.25);text-align:center;">
+    <div style="font-size:48px;margin-bottom:16px;" id="modal-confirm-icon">🗑️</div>
+    <div style="font-size:18px;font-weight:700;color:var(--navy);margin-bottom:10px;" id="modal-confirm-title">¿Eliminar?</div>
+    <div style="font-size:14px;color:var(--text-g);line-height:1.6;margin-bottom:28px;" id="modal-confirm-msg">Esta acción no se puede deshacer.</div>
+    <div style="display:flex;gap:12px;justify-content:center;">
+      <button onclick="modalConfirmCancel()" style="padding:11px 28px;border-radius:10px;border:1.5px solid var(--border);background:#fff;font-size:14px;font-weight:600;color:var(--text-g);cursor:pointer;">Cancelar</button>
+      <button id="modal-confirm-ok" style="padding:11px 28px;border-radius:10px;border:none;background:var(--red);color:#fff;font-size:14px;font-weight:700;cursor:pointer;">Eliminar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══════════════════ JAVASCRIPT ════════════════════ -->
 <script>
 // ╔══════════════════════════════════════════════════════════╗
@@ -1185,24 +1202,76 @@ function loadAdminPdfs(){
   const count = document.getElementById('admin-pdf-count');
   if(!allPdfs.length){ el.innerHTML='<div class="empty-state"><div class="es-icon">📂</div><p>No hay documentos.<br>Sube el primer PDF.</p></div>'; count.textContent='0'; return; }
   count.textContent = allPdfs.length;
-  el.innerHTML=`<table class="data-table"><thead><tr><th>Documento</th><th>Categoría</th><th>Páginas</th><th>Subido</th><th>Acciones</th></tr></thead><tbody>
-    ${allPdfs.map(p=>`<tr>
-      <td><div style="font-weight:600;color:var(--navy);">${p.nombre||'Sin nombre'}</div><div style="font-size:11px;color:var(--text-g);">${p.descripcion||''}</div></td>
+  el.innerHTML=`
+    <div class="bulk-bar" id="pdf-bulk-bar">
+      <input type="checkbox" class="row-cb" id="cb-all-pdfs" onchange="toggleAllPdfs(this.checked)" title="Seleccionar todos">
+      <span style="font-size:13px;font-weight:600;color:var(--blue);" id="pdf-sel-count">0 seleccionados</span>
+      <button class="btn-sm btn-red" onclick="deleteSelectedPdfs()" style="margin-left:auto;padding:7px 18px;">🗑️ Eliminar seleccionados</button>
+    </div>
+    <table class="data-table"><thead><tr>
+      <th style="width:36px;"><input type="checkbox" class="row-cb" id="cb-head-pdfs" onchange="toggleAllPdfs(this.checked)" title="Seleccionar todos"></th>
+      <th>Documento</th><th>Categoría</th><th>Páginas</th><th>Subido</th><th>Acción</th>
+    </tr></thead><tbody>
+    ${allPdfs.map(p=>`<tr id="row-pdf-${p.id}" onclick="togglePdfRow('${p.id}',event)">
+      <td><input type="checkbox" class="row-cb pdf-cb" id="cb-pdf-${p.id}" value="${p.id}" onchange="updatePdfBulkBar()" onclick="event.stopPropagation()"></td>
+      <td><div style="font-weight:600;color:var(--navy);">${p.nombre||'Sin nombre'}</div><div style="font-size:11px;color:var(--text-g);">${p.categoria||''}</div></td>
       <td><span class="badge badge-blue">${p.categoria||'—'}</span></td>
       <td>${p.paginas||'?'} pág.</td>
       <td>${fmtDate(p.fechaSubida)}</td>
-      <td><button class="btn-sm btn-red" onclick="deletePdf('${p.id}','${(p.nombre||'').replace(/'/g,"\\'")}')">Eliminar</button></td>
+      <td><button class="btn-sm btn-red" onclick="event.stopPropagation();deletePdf('${p.id}','${(p.nombre||'').replace(/'/g,"\\'")}')">🗑️</button></td>
     </tr>`).join('')}
-  </tbody></table>`;
+    </tbody></table>`;
+}
+
+function togglePdfRow(id, e){
+  if(e.target.tagName==='BUTTON'||e.target.tagName==='INPUT') return;
+  const cb = document.getElementById(`cb-pdf-${id}`);
+  if(cb){ cb.checked=!cb.checked; updatePdfBulkBar(); }
+}
+function toggleAllPdfs(checked){
+  document.querySelectorAll('.pdf-cb').forEach(cb=>cb.checked=checked);
+  document.querySelectorAll('#cb-head-pdfs,#cb-all-pdfs').forEach(cb=>cb.checked=checked);
+  updatePdfBulkBar();
+}
+function updatePdfBulkBar(){
+  const sel = [...document.querySelectorAll('.pdf-cb:checked')];
+  const bar = document.getElementById('pdf-bulk-bar');
+  const countEl = document.getElementById('pdf-sel-count');
+  bar.classList.toggle('show', sel.length>0);
+  if(countEl) countEl.textContent=`${sel.length} seleccionado${sel.length!==1?'s':''}`;
+  document.querySelectorAll('.pdf-cb').forEach(cb=>{
+    const row = document.getElementById(`row-pdf-${cb.value}`);
+    if(row) row.classList.toggle('row-selected', cb.checked);
+  });
+}
+
+async function deleteSelectedPdfs(){
+  const ids = [...document.querySelectorAll('.pdf-cb:checked')].map(cb=>cb.value);
+  if(!ids.length) return;
+  const nombres = ids.map(id=>{ const p=allPdfs.find(pp=>pp.id===id); return p?.nombre||id; });
+  modalConfirm({
+    icon:'🗑️',
+    title: `Eliminar ${ids.length} documento${ids.length!==1?'s':''}`,
+    msg: `Se eliminarán:<br><br><strong>${nombres.map(n=>`• ${n}`).join('<br>')}</strong><br><br>Esta acción no se puede deshacer.`,
+    okLabel:'Eliminar todo',
+    onOk: async()=>{
+      for(const id of ids) await db.ref(`${DB_PATH}/pdfs/${id}`).remove();
+      showToast(`${ids.length} documento${ids.length!==1?'s':''} eliminado${ids.length!==1?'s':''}.`,'green');
+    }
+  });
 }
 
 async function deletePdf(id, nombre){
-  if(!confirm(`¿Eliminar "${nombre}"?\n\nEsta acción no se puede deshacer.`)) return;
-  try {
-    await db.ref(`${DB_PATH}/pdfs/${id}`).remove();
-    showToast('Documento eliminado.','green');
-    loadAdminPdfs();
-  } catch(e){ showToast('Error al eliminar.','red'); }
+  modalConfirm({
+    icon:'🗑️',
+    title:'¿Eliminar documento?',
+    msg:`<strong>${nombre}</strong><br><br>Esta acción no se puede deshacer.`,
+    okLabel:'Eliminar',
+    onOk: async()=>{
+      await db.ref(`${DB_PATH}/pdfs/${id}`).remove();
+      showToast('Documento eliminado.','green');
+    }
+  });
 }
 
 // ══ USERS MANAGEMENT ══════════════════════════════════════
@@ -1294,9 +1363,16 @@ async function crearMateria(){
 
 async function eliminarMateria(id, nombre, pdfCount){
   if(pdfCount>0){ showToast(`No puedes eliminar "${nombre}" — tiene ${pdfCount} documento(s). Primero elimínalos.`,'red'); return; }
-  if(!confirm(`¿Eliminar la materia "${nombre}"?`)) return;
-  await db.ref(`${DB_PATH}/materias/${id}`).remove();
-  showToast(`Materia eliminada.`,'green');
+  modalConfirm({
+    icon:'📁',
+    title:'¿Eliminar carpeta?',
+    msg:`<strong>${nombre}</strong><br><br>Esta acción no se puede deshacer.`,
+    okLabel:'Eliminar carpeta',
+    onOk: async()=>{
+      await db.ref(`${DB_PATH}/materias/${id}`).remove();
+      showToast('Carpeta eliminada.','green');
+    }
+  });
 }
 
 async function toggleMateria(id, activo){
@@ -1595,6 +1671,29 @@ function fmtDate(iso){
     return d.toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'});
   } catch(e){ return '—'; }
 }
+// ══ MODAL CONFIRMAR ═══════════════════════════════════════
+let _modalOkFn = null;
+function modalConfirm({ icon='🗑️', title='¿Eliminar?', msg='', okLabel='Eliminar', onOk }){
+  document.getElementById('modal-confirm-icon').textContent = icon;
+  document.getElementById('modal-confirm-title').textContent = title;
+  document.getElementById('modal-confirm-msg').innerHTML = msg;
+  document.getElementById('modal-confirm-ok').textContent = okLabel;
+  _modalOkFn = onOk;
+  document.getElementById('modal-confirm').style.display='flex';
+}
+async function modalConfirmOk(){
+  document.getElementById('modal-confirm').style.display='none';
+  if(_modalOkFn) await _modalOkFn();
+  _modalOkFn = null;
+}
+function modalConfirmCancel(){
+  document.getElementById('modal-confirm').style.display='none';
+  _modalOkFn = null;
+}
+// Cerrar al hacer clic fuera
+document.getElementById('modal-confirm').addEventListener('click', function(e){ if(e.target===this) modalConfirmCancel(); });
+document.getElementById('modal-confirm-ok').addEventListener('click', modalConfirmOk);
+
 function showToast(msg, type=''){
   const t = document.getElementById('toast');
   t.textContent=msg;
