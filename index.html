@@ -1322,7 +1322,8 @@ async function sendQuery(){
 
   } catch(e) {
     removeTyping(typingId);
-    appendMessage('ai', `⚠️ Error al consultar: ${e.message}\n\nVerifica que la API Key de Claude esté configurada correctamente.`);
+    const keyStatus = CLAUDE_API_KEY ? `Key cargada (${CLAUDE_API_KEY.slice(0,20)}...)` : 'Key VACÍA';
+    appendMessage('ai', `⚠️ Error: ${e.message}\n\nDetalle: ${e.name}\n${keyStatus}\n\nSi ves "Failed to fetch", abre F12 → Consola y busca el error CORS.`);
   }
   btn.disabled=false;
 }
