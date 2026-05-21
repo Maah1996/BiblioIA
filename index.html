@@ -987,6 +987,8 @@ footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
               <div class="quiz-score-badge" id="quiz-score-display">0/20</div>
             </div>
           </div>
+          <!-- Banner resultado -->
+          <div id="quiz-resultado-banner" style="border-radius:16px;padding:28px;text-align:center;margin-bottom:24px;"></div>
           <div id="quiz-result-list"></div>
           <div style="margin-top:24px;display:flex;gap:12px;">
             <button class="btn-sm btn-blue" onclick="reiniciarCuestionario()" style="padding:13px 28px;font-size:14px;">🔄 Nuevo cuestionario</button>
@@ -2294,7 +2296,25 @@ function enviarCuestionario(){
       </div>`;
   }).join('');
 
-  document.getElementById('quiz-score-display').textContent=`${correctas}/${currentQuizPreguntas.length}`;
+  const total = currentQuizPreguntas.length;
+  const pct = Math.round((correctas/total)*100);
+  const aprobado = pct >= 60;
+
+  document.getElementById('quiz-score-display').textContent=`${correctas}/${total}`;
+
+  // Banner resultado
+  const bannerEl = document.getElementById('quiz-resultado-banner');
+  if(bannerEl){
+    bannerEl.style.background = aprobado ? 'linear-gradient(135deg,#16a34a,#15803d)' : 'linear-gradient(135deg,#dc2626,#b91c1c)';
+    bannerEl.innerHTML = `
+      <div style="font-size:42px;margin-bottom:8px;">${aprobado?'🎉':'💪'}</div>
+      <div style="font-size:28px;font-weight:800;color:#fff;margin-bottom:4px;">${pct}%</div>
+      <div style="font-size:18px;font-weight:700;color:#fff;margin-bottom:6px;">${correctas} de ${total} correctas</div>
+      <div style="display:inline-block;padding:6px 24px;border-radius:20px;background:rgba(255,255,255,.2);font-size:16px;font-weight:800;color:#fff;letter-spacing:1px;">${aprobado?'✅ APROBADO':'❌ REPROBADO'}</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.7);margin-top:8px;">${aprobado?'¡Buen trabajo! Respondiste correctamente más del 60%.':'Necesitas al menos 60% para aprobar. ¡Inténtalo de nuevo!'}</div>
+    `;
+  }
+
   document.getElementById('quiz-result-list').innerHTML=resultHTML;
   document.getElementById('quiz-form').style.display='none';
   document.getElementById('quiz-results').style.display='';
