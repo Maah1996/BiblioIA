@@ -986,23 +986,16 @@ footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
           </div>
         </div>
         <div id="quiz-results" style="display:none;max-width:780px;">
-          <div class="quiz-header">
-            <div>
-              <div style="font-size:11px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Resultado</div>
-              <div style="font-size:18px;font-weight:700;" id="quiz-res-nombre">—</div>
-            </div>
-            <div style="text-align:center;">
-              <div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:4px;">PUNTAJE</div>
-              <div class="quiz-score-badge" id="quiz-score-display">0/20</div>
-            </div>
+          <!-- Banner compacto resultado -->
+          <div id="quiz-resultado-banner" style="border-radius:14px;padding:18px 22px;margin-bottom:20px;"></div>
+          <!-- Botones de acción -->
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:28px;">
+            <button class="btn-sm btn-blue" onclick="repetirCuestionario()" style="padding:11px 22px;font-size:13px;font-weight:700;">🔄 Repetir cuestionario</button>
+            <button class="btn-sm btn-green" onclick="reiniciarCuestionario()" style="padding:11px 22px;font-size:13px;font-weight:700;">🆕 Cuestionario nuevo</button>
+            <button class="btn-sm btn-gray" onclick="goTo('biblioteca-user')" style="padding:11px 20px;font-size:13px;">← Salir</button>
           </div>
-          <!-- Banner resultado -->
-          <div id="quiz-resultado-banner" style="border-radius:16px;padding:28px;text-align:center;margin-bottom:24px;"></div>
+          <!-- Detalle pregunta a pregunta -->
           <div id="quiz-result-list"></div>
-          <div style="margin-top:24px;display:flex;gap:12px;">
-            <button class="btn-sm btn-blue" onclick="reiniciarCuestionario()" style="padding:13px 28px;font-size:14px;">🔄 Nuevo cuestionario</button>
-            <button class="btn-sm btn-gray" onclick="goTo('biblioteca-user')" style="padding:13px 24px;font-size:13px;">← Volver</button>
-          </div>
         </div>
       </div>
 
@@ -2388,28 +2381,41 @@ function enviarCuestionario(){
   const pct = Math.round((correctas/total)*100);
   const aprobado = pct >= 60;
 
-  document.getElementById('quiz-score-display').textContent=`${correctas}/${total}`;
-
-  // Banner resultado
+  // Banner compacto
   const bannerEl = document.getElementById('quiz-resultado-banner');
   if(bannerEl){
     bannerEl.style.background = aprobado ? 'linear-gradient(135deg,#16a34a,#15803d)' : 'linear-gradient(135deg,#dc2626,#b91c1c)';
     bannerEl.innerHTML = `
-      <div style="font-size:42px;margin-bottom:8px;">${aprobado?'🎉':'💪'}</div>
-      <div style="font-size:28px;font-weight:800;color:#fff;margin-bottom:4px;">${pct}%</div>
-      <div style="font-size:18px;font-weight:700;color:#fff;margin-bottom:6px;">${correctas} de ${total} correctas</div>
-      <div style="display:inline-block;padding:6px 24px;border-radius:20px;background:rgba(255,255,255,.2);font-size:16px;font-weight:800;color:#fff;letter-spacing:1px;">${aprobado?'✅ APROBADO':'❌ REPROBADO'}</div>
-      <div style="font-size:12px;color:rgba(255,255,255,.7);margin-top:8px;">${aprobado?'¡Buen trabajo! Respondiste correctamente más del 60%.':'Necesitas al menos 60% para aprobar. ¡Inténtalo de nuevo!'}</div>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+        <div style="font-size:38px;line-height:1;">${aprobado?'🎉':'💪'}</div>
+        <div style="flex:1;min-width:120px;">
+          <div style="font-size:11px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px;">${currentQuizNombre}</div>
+          <div style="font-size:20px;font-weight:800;color:#fff;line-height:1.2;">${pct}% &nbsp;·&nbsp; ${correctas} de ${total} correctas</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.75);margin-top:3px;">${aprobado?'¡Buen trabajo! Superaste el mínimo de 60%.':'Necesitas al menos 60% para aprobar. ¡Inténtalo!'}</div>
+        </div>
+        <div style="padding:8px 20px;border-radius:24px;background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.35);font-size:14px;font-weight:800;color:#fff;white-space:nowrap;">${aprobado?'✅ APROBADO':'❌ REPROBADO'}</div>
+      </div>
     `;
   }
 
   document.getElementById('quiz-result-list').innerHTML=resultHTML;
   document.getElementById('quiz-form').style.display='none';
   document.getElementById('quiz-results').style.display='';
-  document.getElementById('view-cuestionario').scrollTop=0;
+  // Scroll al tope del contenedor principal
+  const mainEl = document.querySelector('.app-main');
+  if(mainEl) mainEl.scrollTop = 0;
+}
+
+function repetirCuestionario(){
+  // Vuelve a mostrar el mismo cuestionario con las mismas preguntas, en blanco
+  document.getElementById('quiz-results').style.display='none';
+  renderQuiz(); // re-renderiza las mismas preguntas sin selección
+  const mainEl = document.querySelector('.app-main');
+  if(mainEl) mainEl.scrollTop = 0;
 }
 
 function reiniciarCuestionario(){
+  // Genera 20 preguntas nuevas al azar del banco
   abrirCuestionario(currentQuizPdfId);
 }
 
