@@ -193,16 +193,18 @@ footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
 .data-table tr:hover td{background:#fafbff;}
 .data-table tr:last-child td{border-bottom:none;}
 /* AUDIO CARD */
-.audio-card{background:#fff;border-radius:var(--radius);padding:20px 24px;border:1px solid var(--border);box-shadow:var(--shadow);display:flex;flex-direction:column;gap:12px;}
-.audio-card-top{display:flex;align-items:center;gap:14px;}
-.audio-icon{width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#7c3aed,#a855f7);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
-.audio-info{flex:1;min-width:0;}
-.audio-name{font-size:15px;font-weight:700;color:var(--navy);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.audio-meta{font-size:12px;color:var(--text-g);}
-.audio-player{width:100%;height:40px;border-radius:8px;outline:none;}
-.audio-player::-webkit-media-controls-panel{background:#f1f5f9;}
-.audio-open-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;background:#7c3aed;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;transition:var(--tr);}
-.audio-open-btn:hover{background:#6d28d9;}
+#lib-audio-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:20px;}
+.audio-card{background:linear-gradient(145deg,#1e1040,#3b1d8a,#6d28d9);border-radius:20px;padding:28px 22px 22px;box-shadow:0 8px 32px rgba(109,40,217,.35);display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;transition:var(--tr);cursor:default;position:relative;overflow:hidden;}
+.audio-card::before{content:'';position:absolute;top:-40px;right:-40px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.05);pointer-events:none;}
+.audio-card::after{content:'';position:absolute;bottom:-30px;left:-30px;width:90px;height:90px;border-radius:50%;background:rgba(255,255,255,.04);pointer-events:none;}
+.audio-card:hover{transform:translateY(-5px);box-shadow:0 14px 40px rgba(109,40,217,.5);}
+.audio-headphones{font-size:56px;line-height:1;filter:drop-shadow(0 4px 12px rgba(0,0,0,.3));animation:hpulse 3s ease-in-out infinite;}
+@keyframes hpulse{0%,100%{transform:scale(1);}50%{transform:scale(1.08);}}
+.audio-card-name{font-size:15px;font-weight:700;color:#fff;line-height:1.3;text-shadow:0 1px 4px rgba(0,0,0,.3);}
+.audio-card-meta{font-size:11px;color:rgba(255,255,255,.6);line-height:1.4;}
+.audio-listen-btn{display:inline-flex;align-items:center;gap:7px;padding:10px 22px;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);border-radius:30px;color:#fff;font-size:13px;font-weight:700;text-decoration:none;transition:var(--tr);backdrop-filter:blur(4px);margin-top:4px;}
+.audio-listen-btn:hover{background:rgba(255,255,255,.28);border-color:rgba(255,255,255,.6);transform:scale(1.04);}
+.audio-no-url{font-size:11px;color:rgba(255,100,100,.8);margin-top:4px;}
 .data-table tr.row-selected td{background:#eff6ff;}
 .row-cb{width:16px;height:16px;cursor:pointer;accent-color:var(--blue);}
 .bulk-bar{display:none;align-items:center;gap:12px;padding:10px 16px;background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:var(--radius-s);margin-bottom:14px;}
@@ -818,7 +820,7 @@ footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
           </div>
           <!-- Audios -->
           <div id="lib-tab-audios" style="display:none;">
-            <div id="lib-audio-grid" style="display:flex;flex-direction:column;gap:14px;max-width:720px;"></div>
+            <div id="lib-audio-grid"></div>
           </div>
         </div>
       </div>
@@ -1579,21 +1581,19 @@ function renderAudioGrid(materia){
   const el = document.getElementById('lib-audio-grid');
   if(!el) return;
   const audios = materia ? allAudios.filter(a=>a.categoria===materia) : allAudios;
-  if(!audios.length){ el.innerHTML='<div class="empty-state"><div class="es-icon">🎵</div><p>No hay audios en esta materia.</p></div>'; return; }
-  el.innerHTML = audios.map(a=>{
-    const esDirecto = /\.(mp3|wav|ogg|m4a|aac|flac)(\?.*)?$/i.test(a.urlAudio||'');
-    return `<div class="audio-card">
-      <div class="audio-card-top">
-        <div class="audio-icon">🎵</div>
-        <div class="audio-info">
-          <div class="audio-name">${a.nombre||'Sin nombre'}</div>
-          <div class="audio-meta">${a.categoria||''} ${a.descripcion?'· '+a.descripcion:''}</div>
-        </div>
-      </div>
-      ${esDirecto ? `<audio class="audio-player" controls preload="none"><source src="${a.urlAudio}"><p style="font-size:12px;color:var(--text-g);">Tu navegador no soporta audio.</p></audio>` : ''}
-      ${a.urlAudio ? `<div><a class="audio-open-btn" href="${a.urlAudio}" target="_blank" rel="noopener">▶ Abrir / Escuchar</a></div>` : '<div style="font-size:12px;color:var(--red);">Sin URL configurada</div>'}
-    </div>`;
-  }).join('');
+  if(!audios.length){
+    el.innerHTML='<div class="empty-state" style="grid-column:1/-1;"><div class="es-icon">🎧</div><p>No hay audios en esta materia aún.</p></div>';
+    return;
+  }
+  el.innerHTML = audios.map(a=>`
+    <div class="audio-card">
+      <div class="audio-headphones">🎧</div>
+      <div class="audio-card-name">${a.nombre||'Sin nombre'}</div>
+      <div class="audio-card-meta">${a.categoria||''}${a.descripcion?' · '+a.descripcion:''}</div>
+      ${a.urlAudio
+        ? `<a class="audio-listen-btn" href="${a.urlAudio}" target="_blank" rel="noopener">▶ Escuchar</a>`
+        : `<div class="audio-no-url">⚠️ Sin URL configurada</div>`}
+    </div>`).join('');
 }
 
 // ══ USER LIBRARY ══════════════════════════════════════════
