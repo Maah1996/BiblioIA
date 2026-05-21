@@ -2404,9 +2404,10 @@ function renderQuiz(){
     if(el) el.textContent=`📚 Banco: ${total} preguntas`;
   });
 
-  document.getElementById('quiz-pdf-nombre').textContent=currentQuizNombre;
-  document.getElementById('quiz-total-label').textContent=currentQuizPreguntas.length;
-  document.getElementById('quiz-res-nombre').textContent=currentQuizNombre;
+  const _set = (id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
+  _set('quiz-pdf-nombre', currentQuizNombre);
+  _set('quiz-total-label', currentQuizPreguntas.length);
+  _set('quiz-res-nombre', currentQuizNombre);
   document.getElementById('quiz-progress-fill').style.width='0%';
   document.getElementById('quiz-progress-label').textContent='Responde todas las preguntas para enviar';
 
