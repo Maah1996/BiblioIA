@@ -235,11 +235,19 @@ footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
 .bulk-bar.show{display:flex;}
 
 /* UPLOAD AREA */
-.upload-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:48px;text-align:center;cursor:pointer;transition:var(--tr);}
-.upload-zone:hover,.upload-zone.drag-over{border-color:var(--blue-l);background:#eff6ff;}
-.upload-zone .uz-icon{font-size:48px;margin-bottom:14px;}
+.upload-zone{border:2.5px dashed var(--border);border-radius:var(--radius);padding:40px 32px;text-align:center;cursor:pointer;transition:all .25s ease;background:var(--bg);}
+.upload-zone:hover{border-color:var(--blue-l);background:#eff6ff;}
+.upload-zone.drag-over{border-color:var(--blue-l);background:#dbeafe;border-style:solid;transform:scale(1.01);box-shadow:0 0 0 4px rgba(59,130,246,.12);}
+.upload-zone .uz-icon{font-size:52px;margin-bottom:14px;transition:transform .2s;}
+.upload-zone.drag-over .uz-icon{transform:scale(1.15);}
 .upload-zone h3{font-size:16px;font-weight:700;color:var(--navy);margin-bottom:6px;}
 .upload-zone p{font-size:13px;color:var(--text-g);}
+.upload-zone.has-files{padding:22px 32px;border-color:var(--blue-l);background:#f0f7ff;}
+.file-row{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fff;border-radius:var(--radius-s);border:1px solid var(--border);transition:var(--tr);}
+.file-row:hover{border-color:var(--blue-l);}
+.file-row input.file-name-edit{flex:1;border:none;background:transparent;font-size:13px;font-weight:600;color:var(--navy);outline:none;min-width:0;padding:2px 4px;border-radius:4px;}
+.file-row input.file-name-edit:focus{background:#eff6ff;}
+.file-count-badge{display:inline-flex;align-items:center;gap:6px;background:var(--blue-l);color:#fff;border-radius:20px;padding:4px 14px;font-size:13px;font-weight:700;}
 .progress-bar{background:var(--border);border-radius:10px;height:8px;overflow:hidden;margin:10px 0;}
 .progress-fill{background:linear-gradient(90deg,var(--blue-l),var(--blue));height:100%;border-radius:10px;transition:width .3s ease;}
 
@@ -666,30 +674,39 @@ footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
       <div class="view" id="view-subir-pdf">
         <div class="page-header">
           <h2>Subir PDFs</h2>
-          <p>Puedes subir uno o varios PDFs a la vez. Se procesarán automáticamente.</p>
+          <p>Arrastra uno o varios PDFs · Agrega en lotes · Se acumulan antes de subir</p>
         </div>
-        <div class="card" style="max-width:720px;">
-          <div class="field-row col2">
-            <div class="field-group">
-              <label>Materia / Carpeta <span style="color:var(--red);">*</span></label>
-              <select id="pdf-categoria">
-                <option value="">Seleccionar materia...</option>
-              </select>
-            </div>
-            <div class="field-group">
-              <label>Nombre (solo si subes 1 PDF)</label>
-              <input type="text" id="pdf-nombre" placeholder="Se usa el nombre del archivo si vacío">
-            </div>
+        <div class="card" style="max-width:760px;">
+          <!-- Carpeta -->
+          <div class="field-group" style="max-width:340px;margin-bottom:20px;">
+            <label>Materia / Carpeta <span style="color:var(--red);">*</span></label>
+            <select id="pdf-categoria"><option value="">Seleccionar materia...</option></select>
           </div>
-          <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleDrop(event)">
-            <input type="file" id="file-input" accept=".pdf" multiple style="display:none" onchange="handleFileSelect(event)">
-            <div class="uz-icon">📄</div>
-            <h3>Arrastra uno o varios PDFs aquí</h3>
-            <p>o haz clic para seleccionar · Solo archivos PDF · Máx. 50MB por archivo</p>
+
+          <!-- Zona de arrastre -->
+          <input type="file" id="file-input" accept=".pdf" multiple style="display:none" onchange="handleFileSelect(event)">
+          <div class="upload-zone" id="upload-zone"
+               onclick="document.getElementById('file-input').click()"
+               ondragover="event.preventDefault();this.classList.add('drag-over')"
+               ondragleave="this.classList.remove('drag-over')"
+               ondrop="handleDrop(event)">
+            <div class="uz-icon" id="uz-icon">📂</div>
+            <h3 id="uz-title">Arrastra tus PDFs aquí</h3>
+            <p id="uz-sub">o haz clic para seleccionar · Puedes soltar varios a la vez · máx. 50 MB c/u</p>
           </div>
-          <!-- Lista de archivos seleccionados -->
-          <div id="upload-file-list" style="display:none;margin-top:16px;display:none;flex-direction:column;gap:8px;"></div>
-          <!-- Progreso general -->
+
+          <!-- Lista de archivos en cola -->
+          <div id="upload-file-list" style="display:none;margin-top:18px;display:none;flex-direction:column;gap:6px;"></div>
+
+          <!-- Barra inferior: contador + agregar más + acciones -->
+          <div id="upload-actions-bar" style="display:none;margin-top:16px;align-items:center;gap:10px;flex-wrap:wrap;">
+            <span class="file-count-badge" id="file-count-badge">0 PDFs en cola</span>
+            <button class="btn-sm btn-gray" onclick="document.getElementById('file-input').click()" style="padding:7px 16px;font-size:12px;">➕ Agregar más PDFs</button>
+            <div style="flex:1;"></div>
+            <button class="btn-sm btn-red" onclick="clearFile()" style="padding:7px 14px;font-size:12px;">🗑 Limpiar todo</button>
+          </div>
+
+          <!-- Progreso -->
           <div id="upload-progress-wrap" style="display:none;margin-top:16px;">
             <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-g);margin-bottom:6px;">
               <span id="progress-label">Procesando...</span>
@@ -697,10 +714,11 @@ footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
             </div>
             <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
           </div>
+
+          <!-- Botón subir -->
           <div style="margin-top:20px;display:flex;gap:12px;align-items:center;">
-            <button class="btn-sm btn-blue" id="btn-upload" onclick="uploadPDF()" style="padding:11px 24px;font-size:13px;">⬆️ Procesar y subir</button>
-            <button class="btn-sm btn-gray" onclick="clearFile()" style="padding:11px 24px;font-size:13px;">Limpiar</button>
-            <span id="upload-result" style="font-size:13px;color:var(--green);font-weight:600;"></span>
+            <button class="btn-sm btn-blue" id="btn-upload" onclick="uploadPDF()" style="padding:12px 28px;font-size:14px;font-weight:700;">⬆️ Procesar y subir</button>
+            <span id="upload-result" style="font-size:13px;font-weight:600;"></span>
           </div>
         </div>
       </div>
@@ -1320,39 +1338,53 @@ function loadDashboard(){
 }
 
 // ══ PDF UPLOAD (multi-archivo) ════════════════════════════
-let selectedFiles = [];
+let selectedFiles = []; // array de {file, nombre}
 
-function handleFileSelect(e){ setFiles(Array.from(e.target.files)); }
+function handleFileSelect(e){ appendFiles(Array.from(e.target.files)); e.target.value=''; }
 function handleDrop(e){
   e.preventDefault();
   document.getElementById('upload-zone').classList.remove('drag-over');
-  const files = Array.from(e.dataTransfer.files).filter(f=>f.type==='application/pdf');
-  if(!files.length){ showToast('Solo se aceptan archivos PDF.','red'); return; }
-  setFiles(files);
+  appendFiles(Array.from(e.dataTransfer.files));
 }
-function setFiles(files){
-  const validos = files.filter(f=>{
-    if(f.type !== 'application/pdf'){ showToast(`"${f.name}" no es PDF — ignorado.`,'red'); return false; }
-    if(f.size > 52428800){ showToast(`"${f.name}" supera 50MB — ignorado.`,'red'); return false; }
-    return true;
+function appendFiles(files){
+  let agregados = 0;
+  files.forEach(f=>{
+    if(f.type !== 'application/pdf'){ showToast(`"${f.name}" no es PDF — ignorado.`,'red'); return; }
+    if(f.size > 52428800){ showToast(`"${f.name}" supera 50 MB — ignorado.`,'red'); return; }
+    // Evitar duplicados por nombre
+    if(selectedFiles.find(x=>x.file.name===f.name && x.file.size===f.size)){ showToast(`"${f.name}" ya está en la cola.`,''); return; }
+    selectedFiles.push({ file:f, nombre: f.name.replace(/\.pdf$/i,'') });
+    agregados++;
   });
-  if(!validos.length) return;
-  selectedFiles = validos;
-  renderFileList();
+  if(agregados) renderFileList();
 }
 function renderFileList(){
-  const el = document.getElementById('upload-file-list');
-  if(!selectedFiles.length){ el.style.display='none'; return; }
+  const el  = document.getElementById('upload-file-list');
+  const bar = document.getElementById('upload-actions-bar');
+  const zone = document.getElementById('upload-zone');
+  const badge = document.getElementById('file-count-badge');
+  if(!selectedFiles.length){
+    el.style.display='none'; bar.style.display='none';
+    zone.classList.remove('has-files');
+    document.getElementById('uz-icon').textContent='📂';
+    document.getElementById('uz-title').textContent='Arrastra tus PDFs aquí';
+    document.getElementById('uz-sub').textContent='o haz clic para seleccionar · Puedes soltar varios a la vez · máx. 50 MB c/u';
+    return;
+  }
+  zone.classList.add('has-files');
+  document.getElementById('uz-icon').textContent='📋';
+  document.getElementById('uz-title').textContent='Suelta más PDFs aquí para agregarlos';
+  document.getElementById('uz-sub').textContent='Se añaden a la cola sin borrar los anteriores';
+  badge.textContent = `${selectedFiles.length} PDF${selectedFiles.length!==1?'s':''} en cola`;
   el.style.display='flex';
-  el.innerHTML = selectedFiles.map((f,i)=>`
-    <div id="file-row-${i}" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg);border-radius:var(--radius-s);border:1px solid var(--border);">
-      <span style="font-size:22px;">📄</span>
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:13px;font-weight:600;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.name.replace(/\.pdf$/i,'')}</div>
-        <div style="font-size:11px;color:var(--text-g);">${(f.size/1024/1024).toFixed(2)} MB</div>
-      </div>
-      <span id="file-status-${i}" style="font-size:18px;">⏳</span>
-      <button onclick="removeFile(${i})" style="background:none;border:none;font-size:16px;color:var(--text-g);cursor:pointer;padding:4px;">✕</button>
+  bar.style.display='flex';
+  el.innerHTML = selectedFiles.map((item,i)=>`
+    <div class="file-row" id="file-row-${i}">
+      <span style="font-size:20px;flex-shrink:0;">📄</span>
+      <input class="file-name-edit" id="fname-${i}" value="${item.nombre}" oninput="selectedFiles[${i}].nombre=this.value" title="Edita el nombre del documento">
+      <span style="font-size:11px;color:var(--text-g);white-space:nowrap;flex-shrink:0;">${(item.file.size/1024/1024).toFixed(1)} MB</span>
+      <span id="file-status-${i}" style="font-size:18px;flex-shrink:0;min-width:22px;text-align:center;">⏳</span>
+      <button onclick="removeFile(${i})" style="background:none;border:none;font-size:15px;color:var(--text-g);cursor:pointer;padding:4px;flex-shrink:0;" title="Quitar">✕</button>
     </div>`).join('');
 }
 function removeFile(i){
@@ -1361,8 +1393,7 @@ function removeFile(i){
 }
 function clearFile(){
   selectedFiles = [];
-  const fl = document.getElementById('upload-file-list');
-  if(fl){ fl.style.display='none'; fl.innerHTML=''; }
+  renderFileList();
   const pw = document.getElementById('upload-progress-wrap');
   if(pw) pw.style.display='none';
   const pf = document.getElementById('progress-fill');
@@ -1370,7 +1401,6 @@ function clearFile(){
   document.getElementById('file-input').value='';
   const ur = document.getElementById('upload-result');
   if(ur) ur.textContent='';
-  document.getElementById('pdf-nombre').value='';
   document.getElementById('pdf-categoria').value='';
 }
 
@@ -1386,13 +1416,12 @@ async function uploadPDF(){
 
   let ok=0, fail=0;
   for(let i=0; i<selectedFiles.length; i++){
-    const file = selectedFiles[i];
-    const nombreInput = selectedFiles.length===1 ? document.getElementById('pdf-nombre').value.trim() : '';
-    const nombre = nombreInput || file.name.replace(/\.pdf$/i,'');
+    const item = selectedFiles[i];
+    const nombre = item.nombre.trim() || item.file.name.replace(/\.pdf$/i,'');
     setFileStatus(i,'⏳');
     setProgress(0, `[${i+1}/${selectedFiles.length}] Leyendo "${nombre}"...`);
     try {
-      const arrayBuffer = await file.arrayBuffer();
+      const arrayBuffer = await item.file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       const totalPages = pdf.numPages;
       const textos = {};
@@ -1420,6 +1449,9 @@ async function uploadPDF(){
   resEl.style.color = fail ? 'var(--red)' : 'var(--green)';
   showToast(`${ok} PDF${ok!==1?'s':''} subido${ok!==1?'s':''} correctamente ✓`,'green');
   btn.disabled=false; btn.textContent='⬆️ Procesar y subir';
+  // Quitar de la cola los que subieron OK; dejar solo los fallidos
+  if(!fail){ clearFile(); }
+  else { selectedFiles = selectedFiles.filter((_,i)=>document.getElementById(`file-status-${i}`)?.textContent==='❌'); renderFileList(); }
 }
 
 function setFileStatus(i, icon){
