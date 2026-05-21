@@ -583,6 +583,9 @@ footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
         <div class="nav-item" data-view="usuarios" onclick="goTo('usuarios')">
           <span class="ni-icon">👥</span><span class="ni-text">Usuarios</span>
         </div>
+        <div class="nav-item" data-view="banco-preguntas" onclick="goTo('banco-preguntas')">
+          <span class="ni-icon">📝</span><span class="ni-text">Cuestionarios</span>
+        </div>
         <div class="nav-item" data-view="ajustes" onclick="goTo('ajustes')">
           <span class="ni-icon">⚙️</span><span class="ni-text">Ajustes</span>
         </div>
@@ -798,6 +801,32 @@ footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
           <div id="admin-audio-list">
             <div class="empty-state"><div class="es-icon">🎵</div><p>No hay audios aún.<br>Agrega el primero arriba.</p></div>
           </div>
+        </div>
+      </div>
+
+      <!-- ── BANCO PREGUNTAS (admin) ─────────────────── -->
+      <div class="view" id="view-banco-preguntas">
+        <div class="page-header">
+          <h2>Banco de preguntas</h2>
+          <p>Preguntas generadas por la IA para cada documento</p>
+        </div>
+        <!-- Selector de PDF -->
+        <div class="card" style="max-width:520px;margin-bottom:20px;">
+          <div class="field-group">
+            <label>Seleccionar documento</label>
+            <select id="banco-pdf-select" onchange="loadBancoPreguntas()" style="width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:var(--radius-s);font-size:13px;font-family:inherit;outline:none;">
+              <option value="">— Selecciona un PDF —</option>
+            </select>
+          </div>
+        </div>
+        <!-- Info banco -->
+        <div id="banco-info" style="display:none;margin-bottom:16px;display:none;align-items:center;gap:12px;flex-wrap:wrap;">
+          <span class="quiz-banco-badge" id="banco-total">📚 0 preguntas</span>
+          <button class="btn-sm btn-red" onclick="limpiarBanco()" style="padding:7px 16px;font-size:12px;">🗑️ Limpiar banco completo</button>
+        </div>
+        <!-- Lista preguntas -->
+        <div id="banco-lista">
+          <div class="empty-state"><div class="es-icon">📝</div><p>Selecciona un documento para ver sus preguntas.</p></div>
         </div>
       </div>
 
@@ -1234,6 +1263,7 @@ function goTo(view){
   if(view==='materias') loadMaterias();
   if(view==='audios-admin') loadAdminAudios();
   if(view==='cuestionario') loadCuestionario();
+  if(view==='banco-preguntas') initBancoPreguntas();
 }
 
 // ══ LOAD ALL DATA ═════════════════════════════════════════
@@ -1983,6 +2013,81 @@ function loadHistorial(){
           ${(q.pdfs||[]).map(n=>`<span class="hist-pdf">📄 ${n}</span>`).join('')}
         </div>
       </div>`).join('');
+  });
+}
+
+// ══ BANCO DE PREGUNTAS (admin) ════════════════════════════
+function initBancoPreguntas(){
+  const sel = document.getElementById('banco-pdf-select');
+  if(!sel) return;
+  sel.innerHTML = '<option value="">— Selecciona un PDF —</option>' +
+    allPdfs.map(p=>`<option value="${p.id}">${p.nombre||'Sin nombre'}</option>`).join('');
+  document.getElementById('banco-info').style.display='none';
+  document.getElementById('banco-lista').innerHTML='<div class="empty-state"><div class="es-icon">📝</div><p>Selecciona un documento para ver sus preguntas.</p></div>';
+}
+
+async function loadBancoPreguntas(){
+  const pdfId = document.getElementById('banco-pdf-select').value;
+  if(!pdfId){ document.getElementById('banco-info').style.display='none'; return; }
+  document.getElementById('banco-lista').innerHTML='<div style="padding:30px;text-align:center;color:var(--text-g);">Cargando preguntas...</div>';
+  const snap = await db.ref(`${DB_PATH}/cuestionarios/${pdfId}/preguntas`).once('value');
+  const data = snap.val()||{};
+  const preguntas = Object.entries(data).map(([id,q])=>({id,...q}));
+  const infoEl = document.getElementById('banco-info');
+  const totalEl = document.getElementById('banco-total');
+  if(!preguntas.length){
+    infoEl.style.display='none';
+    document.getElementById('banco-lista').innerHTML='<div class="empty-state"><div class="es-icon">📝</div><p>No hay preguntas aún para este documento.<br>Abre el cuestionario para generarlas.</p></div>';
+    return;
+  }
+  infoEl.style.display='flex';
+  totalEl.textContent=`📚 ${preguntas.length} pregunta${preguntas.length!==1?'s':''}`;
+  document.getElementById('banco-lista').innerHTML = preguntas.map((q,i)=>`
+    <div class="card" style="margin-bottom:12px;padding:18px 20px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px;">
+        <div style="font-size:11px;font-weight:700;color:var(--blue-l);">PREGUNTA ${i+1} · PÁGINA ${q.pagina||'?'}</div>
+        <button class="btn-sm btn-red" onclick="eliminarPregunta('${pdfId}','${q.id}')" style="padding:4px 10px;font-size:11px;flex-shrink:0;">🗑️ Eliminar</button>
+      </div>
+      <div style="font-size:14px;font-weight:600;color:var(--navy);margin-bottom:12px;line-height:1.4;">${q.pregunta||''}</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;">
+        ${['a','b','c','d'].map(k=>`
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;border:1.5px solid ${k===q.correcta?'var(--green)':'var(--border)'};background:${k===q.correcta?'#f0fdf4':'var(--bg)'};">
+            <span style="width:22px;height:22px;border-radius:6px;background:${k===q.correcta?'var(--green)':'var(--border)'};color:${k===q.correcta?'#fff':'var(--text-g)'};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;">${k.toUpperCase()}</span>
+            <span style="font-size:13px;color:${k===q.correcta?'#166534':'var(--text)'};font-weight:${k===q.correcta?'700':'400'};">${q.alternativas?.[k]||''} ${k===q.correcta?'✓':''}</span>
+          </div>`).join('')}
+      </div>
+      <div style="font-size:11px;color:var(--text-g);background:var(--bg);padding:8px 12px;border-radius:8px;border-left:3px solid var(--blue-l);">
+        💬 <em>"${q.fragmento||''}"</em>
+      </div>
+    </div>`).join('');
+}
+
+async function eliminarPregunta(pdfId, preguntaId){
+  modalConfirm({
+    icon:'📝', title:'¿Eliminar pregunta?',
+    msg:'Esta pregunta se eliminará del banco. No se puede deshacer.',
+    okLabel:'Eliminar',
+    onOk: async()=>{
+      await db.ref(`${DB_PATH}/cuestionarios/${pdfId}/preguntas/${preguntaId}`).remove();
+      showToast('Pregunta eliminada.','green');
+      loadBancoPreguntas();
+    }
+  });
+}
+
+async function limpiarBanco(){
+  const pdfId = document.getElementById('banco-pdf-select').value;
+  if(!pdfId) return;
+  const pdf = allPdfs.find(p=>p.id===pdfId);
+  modalConfirm({
+    icon:'🗑️', title:'¿Limpiar banco completo?',
+    msg:`Se eliminarán <strong>todas las preguntas</strong> de <strong>${pdf?.nombre||'este documento'}</strong>.<br><br>La próxima vez que abras el cuestionario, se generarán nuevas.`,
+    okLabel:'Limpiar todo',
+    onOk: async()=>{
+      await db.ref(`${DB_PATH}/cuestionarios/${pdfId}/preguntas`).remove();
+      showToast('Banco limpiado.','green');
+      loadBancoPreguntas();
+    }
   });
 }
 
