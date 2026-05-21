@@ -2245,16 +2245,25 @@ async function loadCuestionario(){
     });
     setQuizLoadBar(30, `Banco actual: ${banco.length} preguntas válidas`);
 
-    if(banco.length < 40){
-      setQuizLoadBar(40,'Generando nuevas preguntas con IA...');
-      const nuevas = await generarNuevasPreguntas(currentQuizPdfId, banco.length);
-      if(nuevas && nuevas.length){
-        for(const q of nuevas){
-          const ref = db.ref(`${DB_PATH}/cuestionarios/${currentQuizPdfId}/preguntas`).push();
-          await ref.set({...q, id: ref.key});
-          banco.push({...q, id: ref.key});
+    // Generar en lotes de 10 para no superar el timeout de 30s del Worker
+    if(banco.length < 20){
+      const lotes = banco.length < 10 ? 2 : 1;
+      for(let lote=0; lote<lotes; lote++){
+        setQuizLoadBar(40 + lote*20, `Generando preguntas — lote ${lote+1} de ${lotes}...`);
+        try {
+          const nuevas = await generarNuevasPreguntas(currentQuizPdfId, banco.length);
+          if(nuevas && nuevas.length){
+            for(const q of nuevas){
+              const ref = db.ref(`${DB_PATH}/cuestionarios/${currentQuizPdfId}/preguntas`).push();
+              await ref.set({...q, id: ref.key});
+              banco.push({...q, id: ref.key});
+            }
+          }
+          setQuizLoadBar(60 + lote*20, `Banco: ${banco.length} preguntas`);
+        } catch(loteErr){
+          if(banco.length >= 10) break; // suficiente para mostrar quiz
+          throw loteErr;
         }
-        setQuizLoadBar(85,`Banco actualizado: ${banco.length} preguntas`);
       }
     }
 
@@ -2319,13 +2328,13 @@ async function generarNuevasPreguntas(pdfId, yaExisten){
 
   setQuizLoadBar(55,'Consultando IA para generar preguntas...');
 
-  const prompt = `Genera exactamente 20 preguntas de selección múltiple sobre el documento. Responde SOLO con un array JSON, sin texto extra:
-[{"pregunta":"...?","alternativas":{"a":"...","b":"...","c":"...","d":"..."},"correcta":"b","pagina":1,"fragmento":"cita del doc"}]
+  const prompt = `Genera exactamente 10 preguntas de selección múltiple sobre el documento. Responde SOLO con un array JSON, sin texto extra ni markdown:
+[{"pregunta":"...?","alternativas":{"a":"...","b":"...","c":"...","d":"..."},"correcta":"b","pagina":1,"fragmento":"cita breve del doc"}]
 
-REGLAS: 20 preguntas, "correcta" es a/b/c/d, solo info del documento, no repetir las ${yaExisten} existentes.
+REGLAS: exactamente 10 preguntas, "correcta" es a/b/c/d, solo info del documento, no repetir las ${yaExisten} existentes, alternativas cortas (máx 15 palabras).
 
 DOCUMENTO:
-${ctx.slice(0,25000)}`;
+${ctx.slice(0,12000)}`;
 
   // Timeout de 90 segundos
   const controller = new AbortController();
@@ -2337,7 +2346,7 @@ ${ctx.slice(0,25000)}`;
       method:'POST',
       signal: controller.signal,
       headers:{'Content-Type':'application/json','x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01'},
-      body: JSON.stringify({model:'claude-sonnet-4-5',max_tokens:5000,messages:[{role:'user',content:prompt}]})
+      body: JSON.stringify({model:'claude-sonnet-4-5',max_tokens:2500,messages:[{role:'user',content:prompt}]})
     });
   } catch(fetchErr){
     if(fetchErr.name==='AbortError') throw new Error('La IA tardó demasiado (>90s). Intenta de nuevo.');
