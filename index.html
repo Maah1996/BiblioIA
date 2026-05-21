@@ -2235,10 +2235,10 @@ async function loadCuestionario(){
     let banco = [];
     const data = snap.val()||{};
     Object.entries(data).forEach(([id,q])=>{
-      // Solo incluir preguntas con estructura válida
-      if(q && q.pregunta && q.alternativas && q.correcta &&
+      if(q && q.pregunta && q.alternativas &&
          typeof q.alternativas==='object' &&
-         q.alternativas.a && q.alternativas.b && q.alternativas.c && q.alternativas.d &&
+         'a' in q.alternativas && 'b' in q.alternativas &&
+         'c' in q.alternativas && 'd' in q.alternativas &&
          ['a','b','c','d'].includes(q.correcta)){
         banco.push({id,...q});
       }
@@ -2266,7 +2266,10 @@ async function loadCuestionario(){
     const mezclado = banco.sort(()=>Math.random()-.5);
     currentQuizPreguntas = mezclado.slice(0,20);
     setQuizLoadBar(100,'¡Listo!');
-    setTimeout(()=>renderQuiz(), 400);
+    setTimeout(()=>{
+      try{ renderQuiz(); }
+      catch(err){ mostrarErrorQuiz('Error al mostrar el cuestionario', err.message); }
+    }, 300);
 
   } catch(e){
     console.error('Quiz error:',e);
@@ -2380,11 +2383,12 @@ function setQuizLoadBar(pct, msg){
 }
 
 function renderQuiz(){
-  // Filtrar preguntas válidas (con estructura correcta)
+  // Filtrar preguntas con estructura mínima válida
   currentQuizPreguntas = currentQuizPreguntas.filter(q=>
     q && q.pregunta && q.alternativas &&
     typeof q.alternativas === 'object' &&
-    q.alternativas.a && q.alternativas.b && q.alternativas.c && q.alternativas.d &&
+    'a' in q.alternativas && 'b' in q.alternativas &&
+    'c' in q.alternativas && 'd' in q.alternativas &&
     ['a','b','c','d'].includes(q.correcta)
   );
 
