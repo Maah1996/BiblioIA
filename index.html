@@ -2221,7 +2221,9 @@ function abrirCuestionario(pdfId){
 
 async function loadCuestionario(){
   if(!currentQuizPdfId) return;
-  // Mostrar loading
+  // Limpiar estado anterior
+  document.querySelectorAll('.quiz-retry-btn').forEach(b=>b.remove());
+  document.getElementById('quiz-load-bar').style.background='';
   document.getElementById('quiz-loading').style.display='';
   document.getElementById('quiz-form').style.display='none';
   document.getElementById('quiz-results').style.display='none';
@@ -2229,77 +2231,103 @@ async function loadCuestionario(){
   setQuizLoadBar(10,'Revisando banco de preguntas...');
 
   try {
-    // Cargar banco existente
     const snap = await db.ref(`${DB_PATH}/cuestionarios/${currentQuizPdfId}/preguntas`).once('value');
     let banco = [];
     const data = snap.val()||{};
     Object.entries(data).forEach(([id,q])=>{ if(q) banco.push({id,...q}); });
-
     setQuizLoadBar(30, `Banco actual: ${banco.length} preguntas`);
 
-    // Si el banco tiene < 30, generar más
     if(banco.length < 40){
       setQuizLoadBar(40,'Generando nuevas preguntas con IA...');
       const nuevas = await generarNuevasPreguntas(currentQuizPdfId, banco.length);
-      if(nuevas.length){
-        // Guardar en Firebase
+      if(nuevas && nuevas.length){
         for(const q of nuevas){
           const ref = db.ref(`${DB_PATH}/cuestionarios/${currentQuizPdfId}/preguntas`).push();
           await ref.set({...q, id: ref.key});
           banco.push({...q, id: ref.key});
         }
+        setQuizLoadBar(85,`Banco actualizado: ${banco.length} preguntas`);
       }
-      setQuizLoadBar(85,`Banco actualizado: ${banco.length} preguntas`);
     }
 
-    if(!banco.length){ showToast('No se pudieron generar preguntas.','red'); return; }
+    if(!banco.length){
+      mostrarErrorQuiz('No se pudieron generar preguntas.','Este documento puede ser una imagen escaneada sin texto, o hubo un problema con la IA. Intenta con otro PDF.');
+      return;
+    }
 
-    // Seleccionar 20 aleatorias
     const mezclado = banco.sort(()=>Math.random()-.5);
     currentQuizPreguntas = mezclado.slice(0,20);
-
     setQuizLoadBar(100,'¡Listo!');
-    setTimeout(()=>renderQuiz(), 500);
+    setTimeout(()=>renderQuiz(), 400);
 
   } catch(e){
-    console.error(e);
-    showToast('Error: '+e.message,'red');
-    document.getElementById('quiz-loading').style.display='none';
+    console.error('Quiz error:',e);
+    mostrarErrorQuiz('Error al generar el cuestionario', e.message||'Revisa la consola para más detalles.');
+  }
+}
+
+function mostrarErrorQuiz(titulo, detalle){
+  document.getElementById('quiz-loading-titulo').textContent = '⚠️ '+titulo;
+  document.getElementById('quiz-loading-msg').textContent = detalle||'';
+  document.getElementById('quiz-load-bar').style.width='0%';
+  document.getElementById('quiz-load-bar').style.background='var(--red)';
+  // Botón reintentar
+  const loadEl = document.getElementById('quiz-loading');
+  if(!loadEl.querySelector('.quiz-retry-btn')){
+    const btn = document.createElement('button');
+    btn.className='btn-sm btn-blue quiz-retry-btn';
+    btn.style.cssText='margin-top:24px;padding:10px 24px;font-size:13px;';
+    btn.textContent='🔄 Reintentar';
+    btn.onclick=()=>{ btn.remove(); document.getElementById('quiz-load-bar').style.background=''; loadCuestionario(); };
+    loadEl.appendChild(btn);
+    const btnSalir = document.createElement('button');
+    btnSalir.className='btn-sm btn-gray quiz-retry-btn';
+    btnSalir.style.cssText='margin-top:24px;margin-left:10px;padding:10px 20px;font-size:13px;';
+    btnSalir.textContent='← Salir';
+    btnSalir.onclick=()=>goTo('biblioteca-user');
+    loadEl.appendChild(btnSalir);
   }
 }
 
 async function generarNuevasPreguntas(pdfId, yaExisten){
   if(!CLAUDE_API_KEY) await loadClaudeKey();
-  if(!CLAUDE_API_KEY) throw new Error('No hay API Key configurada.');
+  if(!CLAUDE_API_KEY) throw new Error('No hay API Key configurada. Ve a Ajustes y guarda la clave.');
 
-  // Cargar texto del PDF
+  // Cargar texto del PDF desde Firebase
+  setQuizLoadBar(45,'Cargando texto del documento...');
   const snap = await db.ref(`${DB_PATH}/pdfs/${pdfId}/texto`).once('value');
   const textos = snap.val()||{};
   let ctx = '';
   Object.entries(textos).forEach(([idx,txt])=>{
-    ctx += `[PÁGINA ${parseInt(idx)+1}]\n${txt}\n\n`;
+    if(txt && txt.trim()) ctx += `[PÁGINA ${parseInt(idx)+1}]\n${txt}\n\n`;
   });
 
-  const prompt = `Eres un generador de cuestionarios académicos. Genera exactamente 20 preguntas de selección múltiple basadas en el siguiente documento.
+  if(ctx.trim().length < 100){
+    throw new Error('El PDF no tiene texto extraíble (puede ser imagen escaneada). Sube un PDF con texto seleccionable.');
+  }
 
-Devuelve ÚNICAMENTE un array JSON válido, sin texto adicional, sin markdown:
+  setQuizLoadBar(55,'Consultando IA para generar preguntas...');
+
+  const prompt = `Eres un generador de cuestionarios académicos. Genera exactamente 20 preguntas de selección múltiple basadas ÚNICAMENTE en el documento proporcionado.
+
+Responde SOLO con un array JSON válido, sin explicaciones, sin markdown, sin texto antes ni después:
 [
   {
     "pregunta": "Texto de la pregunta?",
     "alternativas": {"a":"Opción A","b":"Opción B","c":"Opción C","d":"Opción D"},
     "correcta": "b",
     "pagina": 3,
-    "fragmento": "Cita textual exacta del documento que respalda la respuesta correcta"
+    "fragmento": "Cita textual exacta del documento que justifica la respuesta correcta"
   }
 ]
 
-REGLAS:
-- Exactamente 20 preguntas, distintas a las ya existentes (ya existen ${yaExisten})
-- Solo usa información del documento
-- Las opciones incorrectas deben ser plausibles pero claramente incorrectas
+REGLAS ESTRICTAS:
+- Devuelve exactamente 20 objetos en el array
 - "correcta" debe ser "a", "b", "c" o "d"
-- Cubre distintas páginas y temas del documento
-- Varía la dificultad entre fácil, media y difícil
+- Las alternativas incorrectas deben ser plausibles
+- Cubre distintos temas y páginas del documento
+- No repitas preguntas similares a las ${yaExisten} ya existentes
+- Solo información contenida en el documento
 
 DOCUMENTO:
 ${ctx.slice(0,40000)}`;
@@ -2307,15 +2335,38 @@ ${ctx.slice(0,40000)}`;
   const resp = await fetch('https://biblioia-proxy.maahantartico.workers.dev/', {
     method:'POST',
     headers:{'Content-Type':'application/json','x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01'},
-    body: JSON.stringify({model:'claude-sonnet-4-5',max_tokens:4000,messages:[{role:'user',content:prompt}]})
+    body: JSON.stringify({model:'claude-sonnet-4-5',max_tokens:6000,messages:[{role:'user',content:prompt}]})
   });
-  if(!resp.ok) throw new Error('Error API');
+
+  if(!resp.ok){
+    let errMsg = `Error HTTP ${resp.status}`;
+    try { const errData = await resp.json(); errMsg = errData.error?.message || errMsg; } catch(_){}
+    throw new Error(errMsg);
+  }
+
   const data = await resp.json();
+  if(!data.content || !data.content[0]){
+    throw new Error('La IA no devolvió contenido. Intenta de nuevo.');
+  }
   const text = data.content[0].text.trim();
-  // Extraer JSON
-  const match = text.match(/\[[\s\S]*\]/);
-  if(!match) throw new Error('Respuesta inválida de la IA');
-  return JSON.parse(match[0]);
+
+  // Extraer JSON — busca el primer [ hasta el último ]
+  const start = text.indexOf('[');
+  const end = text.lastIndexOf(']');
+  if(start === -1 || end === -1) throw new Error('La IA no devolvió un JSON válido. Intenta de nuevo.');
+
+  let preguntas;
+  try {
+    preguntas = JSON.parse(text.slice(start, end+1));
+  } catch(e){
+    throw new Error('Error al leer las preguntas generadas. Intenta de nuevo.');
+  }
+
+  if(!Array.isArray(preguntas) || preguntas.length === 0){
+    throw new Error('La IA generó 0 preguntas. Verifica que el PDF tenga contenido de texto.');
+  }
+
+  return preguntas;
 }
 
 function setQuizLoadBar(pct, msg){
@@ -2324,6 +2375,10 @@ function setQuizLoadBar(pct, msg){
 }
 
 function renderQuiz(){
+  if(!currentQuizPreguntas.length){
+    mostrarErrorQuiz('Sin preguntas','No se cargaron preguntas para este cuestionario. Intenta de nuevo.');
+    return;
+  }
   document.getElementById('quiz-loading').style.display='none';
   document.getElementById('quiz-form').style.display='';
   document.getElementById('quiz-pdf-nombre').textContent=currentQuizNombre;
