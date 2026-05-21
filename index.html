@@ -206,6 +206,28 @@ footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
 .audio-listen-btn{display:inline-flex;align-items:center;gap:5px;padding:7px 16px;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);border-radius:30px;color:#fff;font-size:12px;font-weight:700;text-decoration:none;transition:var(--tr);backdrop-filter:blur(4px);}
 .audio-listen-btn:hover{background:rgba(255,255,255,.28);border-color:rgba(255,255,255,.6);transform:scale(1.04);}
 .audio-no-url{font-size:11px;color:rgba(255,100,100,.8);margin-top:4px;}
+/* CUESTIONARIO */
+.quiz-header{background:linear-gradient(135deg,var(--navy),var(--navy2));border-radius:var(--radius);padding:24px 28px;margin-bottom:24px;color:#fff;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+.quiz-score-badge{background:rgba(255,255,255,.15);border-radius:30px;padding:6px 18px;font-size:22px;font-weight:800;color:#fff;}
+.quiz-q-card{background:#fff;border-radius:var(--radius);border:2px solid var(--border);padding:22px 24px;margin-bottom:14px;transition:var(--tr);}
+.quiz-q-card.answered{border-color:var(--border);}
+.quiz-q-num{font-size:11px;font-weight:700;color:var(--blue-l);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;}
+.quiz-q-text{font-size:15px;font-weight:600;color:var(--navy);line-height:1.5;margin-bottom:16px;}
+.quiz-options{display:flex;flex-direction:column;gap:8px;}
+.quiz-opt{display:flex;align-items:center;gap:12px;padding:11px 16px;border-radius:10px;border:1.5px solid var(--border);cursor:pointer;transition:var(--tr);font-size:14px;color:var(--text);}
+.quiz-opt:hover{border-color:var(--blue-l);background:#eff6ff;}
+.quiz-opt.selected{border-color:var(--blue-l);background:#eff6ff;font-weight:600;}
+.quiz-opt.correct{border-color:var(--green);background:#f0fdf4;color:#166534;font-weight:700;}
+.quiz-opt.incorrect{border-color:var(--red);background:#fef2f2;color:#991b1b;font-weight:700;}
+.quiz-opt.reveal-correct{border-color:var(--green);background:#f0fdf4;color:#166534;}
+.quiz-opt-key{width:28px;height:28px;border-radius:8px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:var(--text-g);flex-shrink:0;}
+.quiz-opt.correct .quiz-opt-key,.quiz-opt.reveal-correct .quiz-opt-key{background:#16a34a;color:#fff;}
+.quiz-opt.incorrect .quiz-opt-key{background:var(--red);color:#fff;}
+.quiz-citation{margin-top:12px;padding:10px 14px;background:#f8faff;border-left:3px solid var(--blue-l);border-radius:0 8px 8px 0;font-size:12px;color:var(--text-g);line-height:1.5;display:none;}
+.quiz-citation.show{display:block;}
+.quiz-progress{height:6px;background:var(--border);border-radius:3px;margin-bottom:6px;overflow:hidden;}
+.quiz-progress-fill{height:100%;background:linear-gradient(90deg,var(--blue-l),var(--green));border-radius:3px;transition:width .4s ease;}
+.quiz-banco-badge{display:inline-flex;align-items:center;gap:6px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;color:var(--blue);}
 .data-table tr.row-selected td{background:#eff6ff;}
 .row-cb{width:16px;height:16px;cursor:pointer;accent-color:var(--blue);}
 .bulk-bar{display:none;align-items:center;gap:12px;padding:10px 16px;background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:var(--radius-s);margin-bottom:14px;}
@@ -895,6 +917,55 @@ footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
         </div>
       </div>
 
+      <!-- ── CUESTIONARIO ──────────────────────────── -->
+      <div class="view" id="view-cuestionario">
+        <div id="quiz-loading" style="text-align:center;padding:60px 20px;">
+          <div style="font-size:48px;margin-bottom:16px;">🧠</div>
+          <div style="font-size:18px;font-weight:700;color:var(--navy);margin-bottom:8px;" id="quiz-loading-titulo">Preparando cuestionario...</div>
+          <div style="font-size:14px;color:var(--text-g);" id="quiz-loading-msg">Generando preguntas desde el documento</div>
+          <div style="margin:24px auto;width:200px;height:6px;background:var(--border);border-radius:3px;overflow:hidden;"><div id="quiz-load-bar" style="height:100%;background:linear-gradient(90deg,var(--blue-l),var(--gold));border-radius:3px;width:0%;transition:width .5s;"></div></div>
+        </div>
+        <div id="quiz-form" style="display:none;max-width:780px;">
+          <div class="quiz-header">
+            <div>
+              <div style="font-size:11px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Cuestionario</div>
+              <div style="font-size:18px;font-weight:700;" id="quiz-pdf-nombre">—</div>
+              <div style="margin-top:8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                <span class="quiz-banco-badge" id="quiz-banco-info">📚 Banco: 0 preguntas</span>
+              </div>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:4px;">PREGUNTAS</div>
+              <div class="quiz-score-badge" id="quiz-total-label">20</div>
+            </div>
+          </div>
+          <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill" style="width:0%"></div></div>
+          <div style="font-size:12px;color:var(--text-g);margin-bottom:20px;text-align:right;" id="quiz-progress-label">Responde todas las preguntas</div>
+          <div id="quiz-questions-list"></div>
+          <div style="margin-top:24px;display:flex;gap:12px;align-items:center;">
+            <button class="btn-sm btn-blue" onclick="enviarCuestionario()" style="padding:13px 32px;font-size:14px;font-weight:700;">✅ Enviar respuestas</button>
+            <button class="btn-sm btn-gray" onclick="goTo('biblioteca-user')" style="padding:13px 24px;font-size:13px;">Cancelar</button>
+          </div>
+        </div>
+        <div id="quiz-results" style="display:none;max-width:780px;">
+          <div class="quiz-header">
+            <div>
+              <div style="font-size:11px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Resultado</div>
+              <div style="font-size:18px;font-weight:700;" id="quiz-res-nombre">—</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:4px;">PUNTAJE</div>
+              <div class="quiz-score-badge" id="quiz-score-display">0/20</div>
+            </div>
+          </div>
+          <div id="quiz-result-list"></div>
+          <div style="margin-top:24px;display:flex;gap:12px;">
+            <button class="btn-sm btn-blue" onclick="reiniciarCuestionario()" style="padding:13px 28px;font-size:14px;">🔄 Nuevo cuestionario</button>
+            <button class="btn-sm btn-gray" onclick="goTo('biblioteca-user')" style="padding:13px 24px;font-size:13px;">← Volver</button>
+          </div>
+        </div>
+      </div>
+
       <!-- ── PERFIL ────────────────────────────────── -->
       <div class="view" id="view-perfil">
         <div class="page-header">
@@ -1162,6 +1233,7 @@ function goTo(view){
   if(view==='ajustes') loadAjustes();
   if(view==='materias') loadMaterias();
   if(view==='audios-admin') loadAdminAudios();
+  if(view==='cuestionario') loadCuestionario();
 }
 
 // ══ LOAD ALL DATA ═════════════════════════════════════════
@@ -1687,7 +1759,10 @@ function renderLibraryGrid(pdfs){
         <span class="badge badge-blue">${p.categoria||'Sin materia'}</span>
         <span class="badge" style="background:#f1f5f9;color:var(--text-g);">${p.paginas||'?'} pág.</span>
       </div>
-      <button class="btn-sm btn-blue" style="width:100%;" onclick="goToConsultarWith('${p.id}')">💬 Consultar</button>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <button class="btn-sm btn-blue" style="width:100%;" onclick="goToConsultarWith('${p.id}')">💬 Consultar</button>
+        <button class="btn-sm" style="width:100%;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border:none;padding:8px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;" onclick="abrirCuestionario('${p.id}')">📝 Cuestionario</button>
+      </div>
     </div>`).join('');
 }
 function goToConsultarWith(pdfId){
@@ -1909,6 +1984,220 @@ function loadHistorial(){
         </div>
       </div>`).join('');
   });
+}
+
+// ══ CUESTIONARIO ══════════════════════════════════════════
+let currentQuizPdfId = null;
+let currentQuizPreguntas = [];
+let currentQuizNombre = '';
+
+function abrirCuestionario(pdfId){
+  const pdf = allPdfs.find(p=>p.id===pdfId);
+  if(!pdf){ showToast('Documento no encontrado.','red'); return; }
+  currentQuizPdfId = pdfId;
+  currentQuizNombre = pdf.nombre||'Documento';
+  goTo('cuestionario');
+}
+
+async function loadCuestionario(){
+  if(!currentQuizPdfId) return;
+  // Mostrar loading
+  document.getElementById('quiz-loading').style.display='';
+  document.getElementById('quiz-form').style.display='none';
+  document.getElementById('quiz-results').style.display='none';
+  document.getElementById('quiz-loading-titulo').textContent=`Preparando: ${currentQuizNombre}`;
+  setQuizLoadBar(10,'Revisando banco de preguntas...');
+
+  try {
+    // Cargar banco existente
+    const snap = await db.ref(`${DB_PATH}/cuestionarios/${currentQuizPdfId}/preguntas`).once('value');
+    let banco = [];
+    const data = snap.val()||{};
+    Object.entries(data).forEach(([id,q])=>{ if(q) banco.push({id,...q}); });
+
+    setQuizLoadBar(30, `Banco actual: ${banco.length} preguntas`);
+
+    // Si el banco tiene < 30, generar más
+    if(banco.length < 30){
+      setQuizLoadBar(40,'Generando nuevas preguntas con IA...');
+      const nuevas = await generarNuevasPreguntas(currentQuizPdfId, banco.length);
+      if(nuevas.length){
+        // Guardar en Firebase
+        for(const q of nuevas){
+          const ref = db.ref(`${DB_PATH}/cuestionarios/${currentQuizPdfId}/preguntas`).push();
+          await ref.set({...q, id: ref.key});
+          banco.push({...q, id: ref.key});
+        }
+      }
+      setQuizLoadBar(85,`Banco actualizado: ${banco.length} preguntas`);
+    }
+
+    if(!banco.length){ showToast('No se pudieron generar preguntas.','red'); return; }
+
+    // Seleccionar 20 aleatorias
+    const mezclado = banco.sort(()=>Math.random()-.5);
+    currentQuizPreguntas = mezclado.slice(0,20);
+
+    setQuizLoadBar(100,'¡Listo!');
+    setTimeout(()=>renderQuiz(), 500);
+
+  } catch(e){
+    console.error(e);
+    showToast('Error: '+e.message,'red');
+    document.getElementById('quiz-loading').style.display='none';
+  }
+}
+
+async function generarNuevasPreguntas(pdfId, yaExisten){
+  if(!CLAUDE_API_KEY) await loadClaudeKey();
+  if(!CLAUDE_API_KEY) throw new Error('No hay API Key configurada.');
+
+  // Cargar texto del PDF
+  const snap = await db.ref(`${DB_PATH}/pdfs/${pdfId}/texto`).once('value');
+  const textos = snap.val()||{};
+  let ctx = '';
+  Object.entries(textos).forEach(([idx,txt])=>{
+    ctx += `[PÁGINA ${parseInt(idx)+1}]\n${txt}\n\n`;
+  });
+
+  const prompt = `Eres un generador de cuestionarios académicos. Genera exactamente 10 preguntas de selección múltiple basadas en el siguiente documento.
+
+Devuelve ÚNICAMENTE un array JSON válido, sin texto adicional, sin markdown:
+[
+  {
+    "pregunta": "Texto de la pregunta?",
+    "alternativas": {"a":"Opción A","b":"Opción B","c":"Opción C","d":"Opción D"},
+    "correcta": "b",
+    "pagina": 3,
+    "fragmento": "Cita textual exacta del documento que respalda la respuesta correcta"
+  }
+]
+
+REGLAS:
+- Exactamente 10 preguntas, distintas a las ya existentes (ya existen ${yaExisten})
+- Solo usa información del documento
+- Las opciones incorrectas deben ser plausibles pero claramente incorrectas
+- "correcta" debe ser "a", "b", "c" o "d"
+- Cubre distintas páginas y temas del documento
+- Varía la dificultad entre fácil, media y difícil
+
+DOCUMENTO:
+${ctx.slice(0,40000)}`;
+
+  const resp = await fetch('https://biblioia-proxy.maahantartico.workers.dev/', {
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01'},
+    body: JSON.stringify({model:'claude-sonnet-4-5',max_tokens:4000,messages:[{role:'user',content:prompt}]})
+  });
+  if(!resp.ok) throw new Error('Error API');
+  const data = await resp.json();
+  const text = data.content[0].text.trim();
+  // Extraer JSON
+  const match = text.match(/\[[\s\S]*\]/);
+  if(!match) throw new Error('Respuesta inválida de la IA');
+  return JSON.parse(match[0]);
+}
+
+function setQuizLoadBar(pct, msg){
+  document.getElementById('quiz-load-bar').style.width=pct+'%';
+  document.getElementById('quiz-loading-msg').textContent=msg;
+}
+
+function renderQuiz(){
+  document.getElementById('quiz-loading').style.display='none';
+  document.getElementById('quiz-form').style.display='';
+  document.getElementById('quiz-pdf-nombre').textContent=currentQuizNombre;
+  document.getElementById('quiz-total-label').textContent=currentQuizPreguntas.length;
+  document.getElementById('quiz-res-nombre').textContent=currentQuizNombre;
+
+  // Banco info
+  db.ref(`${DB_PATH}/cuestionarios/${currentQuizPdfId}/preguntas`).once('value',s=>{
+    const total = Object.keys(s.val()||{}).length;
+    document.getElementById('quiz-banco-info').textContent=`📚 Banco: ${total} preguntas`;
+  });
+
+  document.getElementById('quiz-progress-fill').style.width='0%';
+  document.getElementById('quiz-progress-label').textContent='Responde todas las preguntas para enviar';
+
+  const lista = document.getElementById('quiz-questions-list');
+  lista.innerHTML = currentQuizPreguntas.map((q,i)=>`
+    <div class="quiz-q-card" id="qcard-${i}">
+      <div class="quiz-q-num">Pregunta ${i+1} de ${currentQuizPreguntas.length} · Página ${q.pagina||'?'}</div>
+      <div class="quiz-q-text">${q.pregunta}</div>
+      <div class="quiz-options">
+        ${['a','b','c','d'].map(k=>`
+          <div class="quiz-opt" id="qopt-${i}-${k}" onclick="seleccionarOpcion(${i},'${k}')">
+            <div class="quiz-opt-key">${k.toUpperCase()}</div>
+            <span>${q.alternativas[k]||''}</span>
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+
+  // Listener para progreso
+  lista.addEventListener('change', actualizarProgreso);
+}
+
+function seleccionarOpcion(qIdx, key){
+  ['a','b','c','d'].forEach(k=>{
+    const el = document.getElementById(`qopt-${qIdx}-${k}`);
+    if(el) el.classList.toggle('selected', k===key);
+  });
+  actualizarProgreso();
+}
+
+function actualizarProgreso(){
+  const respondidas = currentQuizPreguntas.filter((_,i)=>
+    ['a','b','c','d'].some(k=>document.getElementById(`qopt-${i}-${k}`)?.classList.contains('selected'))
+  ).length;
+  const pct = Math.round((respondidas/currentQuizPreguntas.length)*100);
+  document.getElementById('quiz-progress-fill').style.width=pct+'%';
+  document.getElementById('quiz-progress-label').textContent=`${respondidas} de ${currentQuizPreguntas.length} respondidas`;
+}
+
+function enviarCuestionario(){
+  // Verificar que todas estén respondidas
+  const sinResponder = currentQuizPreguntas.filter((_,i)=>
+    !['a','b','c','d'].some(k=>document.getElementById(`qopt-${i}-${k}`)?.classList.contains('selected'))
+  );
+  if(sinResponder.length>0){ showToast(`Faltan ${sinResponder.length} preguntas por responder.`,'red'); return; }
+
+  let correctas=0;
+  const pdf = allPdfs.find(p=>p.id===currentQuizPdfId);
+
+  const resultHTML = currentQuizPreguntas.map((q,i)=>{
+    const seleccionada = ['a','b','c','d'].find(k=>document.getElementById(`qopt-${i}-${k}`)?.classList.contains('selected'));
+    const esCorrecta = seleccionada===q.correcta;
+    if(esCorrecta) correctas++;
+    const linkCita = pdf?.urlPdf
+      ? `<a href="${pdf.urlPdf}" target="_blank" style="color:var(--blue);font-weight:600;font-size:12px;">📄 Abrir PDF · Pág. ${q.pagina||'?'} ↗</a>`
+      : `<span style="font-size:12px;color:var(--text-g);">📄 ${currentQuizNombre} · Pág. ${q.pagina||'?'}</span>`;
+    return `
+      <div class="quiz-q-card" style="border-color:${esCorrecta?'var(--green)':'var(--red)'};">
+        <div class="quiz-q-num" style="color:${esCorrecta?'var(--green)':'var(--red)'};">${esCorrecta?'✅':'❌'} Pregunta ${i+1} · Página ${q.pagina||'?'}</div>
+        <div class="quiz-q-text">${q.pregunta}</div>
+        <div class="quiz-options">
+          ${['a','b','c','d'].map(k=>{
+            let cls='quiz-opt';
+            if(k===q.correcta) cls+=' reveal-correct';
+            if(k===seleccionada && !esCorrecta) cls+=' incorrect';
+            return `<div class="${cls}"><div class="quiz-opt-key">${k.toUpperCase()}</div><span>${q.alternativas[k]||''}</span>${k===q.correcta?'  ✓':k===seleccionada&&!esCorrecta?' ✗':''}</div>`;
+          }).join('')}
+        </div>
+        <div class="quiz-citation show">
+          💬 <em>"${q.fragmento||''}"</em><br><br>${linkCita}
+        </div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('quiz-score-display').textContent=`${correctas}/${currentQuizPreguntas.length}`;
+  document.getElementById('quiz-result-list').innerHTML=resultHTML;
+  document.getElementById('quiz-form').style.display='none';
+  document.getElementById('quiz-results').style.display='';
+  document.getElementById('view-cuestionario').scrollTop=0;
+}
+
+function reiniciarCuestionario(){
+  abrirCuestionario(currentQuizPdfId);
 }
 
 // ══ PERFIL ════════════════════════════════════════════════
