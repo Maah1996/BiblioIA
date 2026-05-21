@@ -727,9 +727,9 @@ footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
         </div>
         <div class="card" style="max-width:600px;margin-bottom:24px;">
           <div class="card-title">📁 Nueva materia</div>
-          <div style="display:flex;gap:12px;align-items:flex-end;">
-            <div class="field-group" style="flex:1;">
-              <label>Nombre de la materia</label>
+          <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+            <div class="field-group" style="flex:1;min-width:160px;">
+              <label>Nombre de la carpeta</label>
               <input type="text" id="materia-nombre" placeholder="Ej: Matemáticas, Inglés, Historia..." maxlength="50">
             </div>
             <div class="field-group">
@@ -747,6 +747,12 @@ footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
                 <option value="🎵">🎵</option>
                 <option value="🧮">🧮</option>
                 <option value="🌱">🌱</option>
+              </select>
+            </div>
+            <div class="field-group" style="min-width:180px;">
+              <label>Carpeta padre (opcional)</label>
+              <select id="materia-padre" style="padding:10px 13px;border:1.5px solid var(--border);border-radius:var(--radius-s);font-size:13px;outline:none;width:100%;">
+                <option value="">📁 Raíz (sin carpeta padre)</option>
               </select>
             </div>
             <button class="btn-sm btn-blue" onclick="crearMateria()" style="padding:11px 20px;font-size:13px;white-space:nowrap;">+ Crear carpeta</button>
@@ -869,7 +875,7 @@ footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
         </div>
         <!-- Vista contenido dentro de carpeta -->
         <div id="lib-pdfs-view" style="display:none;">
-          <button onclick="volverCarpetas()" style="display:inline-flex;align-items:center;gap:8px;margin-bottom:20px;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-s);padding:8px 16px;font-size:13px;font-weight:600;color:var(--navy);cursor:pointer;">← Volver a materias</button>
+          <button id="lib-volver-btn" onclick="volverCarpetas()" style="display:inline-flex;align-items:center;gap:8px;margin-bottom:20px;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-s);padding:8px 16px;font-size:13px;font-weight:600;color:var(--navy);cursor:pointer;">← Volver a materias</button>
           <!-- Pestañas -->
           <div style="display:flex;gap:0;margin-bottom:24px;border-bottom:2px solid var(--border);">
             <button id="tab-pdfs" onclick="switchLibTab('pdfs')" style="padding:10px 24px;border:none;background:none;font-size:14px;font-weight:700;color:var(--blue);border-bottom:3px solid var(--blue);margin-bottom:-2px;cursor:pointer;">📄 Documentos</button>
@@ -1575,8 +1581,48 @@ function loadAllMaterias(){
 }
 
 function updateMateriaSelects(){
-  const opts = '<option value="">Seleccionar materia...</option>' + allMaterias.map(m=>`<option value="${m.nombre}">${m.icono||'📁'} ${m.nombre}</option>`).join('');
+  // Para PDF/Audio: mostrar todas las materias (raíz e hijos), indicando jerarquía
+  const raices = allMaterias.filter(m=>!m.parentId);
+  let opts = '<option value="">Seleccionar materia...</option>';
+  raices.forEach(r=>{
+    const hijos = allMaterias.filter(h=>h.parentId===r.id);
+    if(hijos.length){
+      opts += `<optgroup label="${r.icono||'📁'} ${r.nombre}">`;
+      hijos.forEach(h=>{ opts+=`<option value="${h.nombre}">　${h.icono||'📂'} ${h.nombre}</option>`; });
+      opts += '</optgroup>';
+      // También permitir asignar a la raíz si se desea
+      opts += `<option value="${r.nombre}">${r.icono||'📁'} ${r.nombre} (raíz)</option>`;
+    } else {
+      opts += `<option value="${r.nombre}">${r.icono||'📁'} ${r.nombre}</option>`;
+    }
+  });
   ['pdf-categoria','audio-categoria'].forEach(id=>{ const s=document.getElementById(id); if(s) s.innerHTML=opts; });
+  // Select de carpeta padre (solo raíces)
+  const padreEl = document.getElementById('materia-padre');
+  if(padreEl){
+    padreEl.innerHTML = '<option value="">📁 Raíz (sin carpeta padre)</option>' +
+      raices.map(r=>`<option value="${r.id}">${r.icono||'📁'} ${r.nombre}</option>`).join('');
+  }
+}
+
+function _materiaCard(m, esHijo){
+  const pdfCount = allPdfs.filter(p=>p.categoria===m.nombre).length;
+  const activo = m.activo !== false;
+  const indent = esHijo ? 'margin-left:24px;border-left:3px solid var(--blue-l);border-radius:0 var(--radius) var(--radius) 0;' : '';
+  const icon = esHijo ? (m.icono||'📂') : (m.icono||'📁');
+  return `<div style="background:var(--bg);border-radius:var(--radius);padding:14px 16px;border:2px solid ${activo?'var(--green)':'var(--border)'};${indent}display:flex;align-items:center;justify-content:space-between;gap:8px;">
+    <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
+      <span style="font-size:${esHijo?'22':'28'}px;flex-shrink:0;">${icon}</span>
+      <div style="min-width:0;">
+        <div style="font-size:${esHijo?'13':'14'}px;font-weight:700;color:${activo?'var(--navy)':'var(--text-g)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.nombre}</div>
+        <div style="font-size:11px;color:var(--text-g);">${pdfCount} doc. · <span style="color:${activo?'var(--green)':'var(--red)'};font-weight:600;">${activo?'Visible':'Oculta'}</span>${esHijo?'<span style="margin-left:6px;color:var(--text-g);">· subcarpeta</span>':''}</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:6px;flex-shrink:0;">
+      <button class="btn-sm ${activo?'btn-gray':'btn-green'}" onclick="toggleMateria('${m.id}',${activo})" style="padding:5px 10px;font-size:11px;">${activo?'⏸ Ocultar':'▶ Activar'}</button>
+      <button class="btn-sm btn-red" onclick="eliminarMateria('${m.id}','${m.nombre}',${pdfCount},'${m.parentId||''}')" style="padding:5px 10px;font-size:11px;">✕</button>
+    </div>
+  </div>`;
 }
 
 function loadMaterias(){
@@ -1588,39 +1634,37 @@ function loadMaterias(){
     return;
   }
   count.textContent = allMaterias.length;
-  el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;">` +
-    allMaterias.map(m=>{
-      const pdfCount = allPdfs.filter(p=>p.categoria===m.nombre).length;
-      const activo = m.activo !== false; // undefined = activo por defecto
-      return `<div style="background:var(--bg);border-radius:var(--radius);padding:18px;border:2px solid ${activo?'var(--green)':'var(--border)'};display:flex;align-items:center;justify-content:space-between;gap:8px;">
-        <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
-          <span style="font-size:28px;flex-shrink:0;">${m.icono||'📁'}</span>
-          <div style="min-width:0;">
-            <div style="font-size:14px;font-weight:700;color:${activo?'var(--navy)':'var(--text-g)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.nombre}</div>
-            <div style="font-size:11px;color:var(--text-g);">${pdfCount} doc. · <span style="color:${activo?'var(--green)':'var(--red)'};font-weight:600;">${activo?'Visible':'Oculta'}</span></div>
-          </div>
-        </div>
-        <div style="display:flex;gap:6px;flex-shrink:0;">
-          <button class="btn-sm ${activo?'btn-gray':'btn-green'}" onclick="toggleMateria('${m.id}',${activo})" style="padding:5px 10px;font-size:11px;" title="${activo?'Ocultar a usuarios':'Mostrar a usuarios'}">${activo?'⏸ Ocultar':'▶ Activar'}</button>
-          <button class="btn-sm btn-red" onclick="eliminarMateria('${m.id}','${m.nombre}',${pdfCount})" style="padding:5px 10px;font-size:11px;">✕</button>
-        </div>
-      </div>`;
-    }).join('') + '</div>';
+  const raices = allMaterias.filter(m=>!m.parentId);
+  let html = '<div style="display:flex;flex-direction:column;gap:8px;">';
+  raices.forEach(r=>{
+    html += _materiaCard(r, false);
+    const hijos = allMaterias.filter(h=>h.parentId===r.id);
+    hijos.forEach(h=>{ html += _materiaCard(h, true); });
+  });
+  html += '</div>';
+  el.innerHTML = html;
 }
 
 async function crearMateria(){
   const nombre = document.getElementById('materia-nombre').value.trim();
   const icono  = document.getElementById('materia-icono').value;
-  if(!nombre){ showToast('Escribe el nombre de la materia.','red'); return; }
+  const parentId = document.getElementById('materia-padre').value || null;
+  if(!nombre){ showToast('Escribe el nombre de la carpeta.','red'); return; }
   if(allMaterias.find(m=>m.nombre.toLowerCase()===nombre.toLowerCase())){
-    showToast('Ya existe una materia con ese nombre.','red'); return;
+    showToast('Ya existe una carpeta con ese nombre.','red'); return;
   }
-  await db.ref(`${DB_PATH}/materias`).push({ nombre, icono, activo: true, fechaCreacion: new Date().toISOString() });
+  const data = { nombre, icono, activo: true, fechaCreacion: new Date().toISOString() };
+  if(parentId) data.parentId = parentId;
+  await db.ref(`${DB_PATH}/materias`).push(data);
   document.getElementById('materia-nombre').value='';
-  showToast(`Materia "${nombre}" creada ✓`,'green');
+  document.getElementById('materia-padre').value='';
+  const tipo = parentId ? 'Subcarpeta' : 'Carpeta';
+  showToast(`${tipo} "${nombre}" creada ✓`,'green');
 }
 
-async function eliminarMateria(id, nombre, pdfCount){
+async function eliminarMateria(id, nombre, pdfCount, parentId){
+  const hijos = allMaterias.filter(h=>h.parentId===id);
+  if(hijos.length>0){ showToast(`No puedes eliminar "${nombre}" — tiene ${hijos.length} subcarpeta(s). Elimínalas primero.`,'red'); return; }
   if(pdfCount>0){ showToast(`No puedes eliminar "${nombre}" — tiene ${pdfCount} documento(s). Primero elimínalos.`,'red'); return; }
   modalConfirm({
     icon:'📁',
@@ -1641,10 +1685,8 @@ async function toggleMateria(id, activo){
 
 // ══ AUDIOS (admin) ════════════════════════════════════════
 function updateAudioSelects(){
-  ['audio-categoria'].forEach(selId=>{
-    const sel = document.getElementById(selId);
-    if(sel) sel.innerHTML='<option value="">Seleccionar materia...</option>'+allMaterias.map(m=>`<option value="${m.nombre}">${m.icono||'📁'} ${m.nombre}</option>`).join('');
-  });
+  // Reusar la misma lógica jerárquica que updateMateriaSelects
+  updateMateriaSelects();
 }
 
 function loadAdminAudios(){
@@ -1734,36 +1776,78 @@ let currentMateria = null;
 
 function loadUserLibrary(){
   volverCarpetas();
-  renderCarpetas();
+}
+
+function _carpetaCard(m, onclick, esHijo){
+  const pdfCount = allPdfs.filter(p=>p.categoria===m.nombre).length;
+  const audioCount = allAudios.filter(a=>a.categoria===m.nombre).length;
+  const hijos = allMaterias.filter(h=>h.parentId===m.id && h.activo!==false);
+  const subInfo = hijos.length>0 ? `📂 ${hijos.length} subcarpeta${hijos.length!==1?'s':''}` : `${pdfCount} doc.${audioCount?` · 🎵 ${audioCount}`:''}`;
+  const icono = esHijo ? (m.icono||'📂') : (m.icono||'📁');
+  return `<div onclick="${onclick}" style="background:#fff;border-radius:var(--radius);padding:${esHijo?'20px 16px':'28px 22px'};border:1px solid var(--border);box-shadow:var(--shadow);cursor:pointer;transition:var(--tr);text-align:center;" onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='var(--shadow-l)';this.style.borderColor='var(--blue-l)'" onmouseleave="this.style.transform='';this.style.boxShadow='var(--shadow)';this.style.borderColor='var(--border)'">
+    <div style="font-size:${esHijo?'36':'48'}px;margin-bottom:10px;">${icono}</div>
+    <div style="font-size:${esHijo?'13':'15'}px;font-weight:700;color:var(--navy);margin-bottom:5px;">${m.nombre}</div>
+    <div style="font-size:12px;color:var(--text-g);">${subInfo}</div>
+  </div>`;
 }
 
 function renderCarpetas(){
   const el = document.getElementById('lib-carpetas-grid');
-  const visibles = allMaterias.filter(m => m.activo !== false);
-  if(!visibles.length){
+  const raices = allMaterias.filter(m=>m.activo!==false && !m.parentId);
+  if(!raices.length){
     el.innerHTML='<div class="empty-state" style="grid-column:1/-1;"><div class="es-icon">📂</div><p>No hay materias disponibles aún.</p></div>';
     return;
   }
-  el.innerHTML = visibles.map(m=>{
-    const pdfCount = allPdfs.filter(p=>p.categoria===m.nombre).length;
-    const audioCount = allAudios.filter(a=>a.categoria===m.nombre).length;
-    return `<div onclick="abrirMateria('${m.nombre}')" style="background:#fff;border-radius:var(--radius);padding:28px 22px;border:1px solid var(--border);box-shadow:var(--shadow);cursor:pointer;transition:var(--tr);text-align:center;" onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='var(--shadow-l)';this.style.borderColor='var(--blue-l)'" onmouseleave="this.style.transform='';this.style.boxShadow='var(--shadow)';this.style.borderColor='var(--border)'">
-      <div style="font-size:48px;margin-bottom:12px;">${m.icono||'📁'}</div>
-      <div style="font-size:15px;font-weight:700;color:var(--navy);margin-bottom:6px;">${m.nombre}</div>
-      <div style="font-size:12px;color:var(--text-g);">${pdfCount} doc.${audioCount?` · 🎵 ${audioCount} audio${audioCount!==1?'s':''}`:''}</div>
-    </div>`;
-  }).join('');
+  el.innerHTML = raices.map(m=>_carpetaCard(m, `abrirMateria('${m.id}')`, false)).join('');
 }
 
-function abrirMateria(nombre){
-  currentMateria = nombre;
+function abrirMateria(id){
+  const m = allMaterias.find(x=>x.id===id);
+  if(!m) return;
+  const hijos = allMaterias.filter(h=>h.parentId===id && h.activo!==false);
+  if(hijos.length>0){
+    // Mostrar subcarpetas
+    currentMateria = null;
+    document.getElementById('lib-titulo').textContent = m.nombre;
+    document.getElementById('lib-subtitulo').textContent = 'Selecciona una subcarpeta';
+    document.getElementById('lib-carpetas-view').style.display='';
+    document.getElementById('lib-pdfs-view').style.display='none';
+    const el = document.getElementById('lib-carpetas-grid');
+    el.innerHTML =
+      `<div style="grid-column:1/-1;margin-bottom:4px;">
+        <button onclick="volverCarpetas()" style="display:inline-flex;align-items:center;gap:8px;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-s);padding:8px 16px;font-size:13px;font-weight:600;color:var(--navy);cursor:pointer;">← Volver a carpetas</button>
+      </div>` +
+      hijos.map(h=>_carpetaCard(h, `abrirSubcarpeta('${h.id}')`, true)).join('');
+  } else {
+    // Abrir PDFs directamente
+    currentMateria = m.nombre;
+    currentLibTab = 'pdfs';
+    document.getElementById('lib-titulo').textContent = m.nombre;
+    document.getElementById('lib-subtitulo').textContent = 'Documentos y audios de esta materia';
+    document.getElementById('lib-carpetas-view').style.display='none';
+    document.getElementById('lib-pdfs-view').style.display='';
+    const btn = document.getElementById('lib-volver-btn');
+    if(btn){ btn.textContent='← Volver a carpetas'; btn.onclick=volverCarpetas; }
+    switchLibTab('pdfs');
+    renderLibraryGrid(allPdfs.filter(p=>p.categoria===m.nombre));
+    renderAudioGrid(m.nombre);
+  }
+}
+
+function abrirSubcarpeta(id){
+  const h = allMaterias.find(x=>x.id===id);
+  if(!h) return;
+  currentMateria = h.nombre;
   currentLibTab = 'pdfs';
-  document.getElementById('lib-titulo').textContent = nombre;
-  document.getElementById('lib-subtitulo').textContent = 'Documentos y audios de esta materia';
+  document.getElementById('lib-titulo').textContent = h.nombre;
+  document.getElementById('lib-subtitulo').textContent = 'Documentos y audios de esta subcarpeta';
   document.getElementById('lib-carpetas-view').style.display='none';
   document.getElementById('lib-pdfs-view').style.display='';
+  const btn = document.getElementById('lib-volver-btn');
+  if(btn){ btn.textContent='← Volver a subcarpetas'; btn.onclick=()=>abrirMateria(h.parentId); }
   switchLibTab('pdfs');
-  renderLibraryGrid(allPdfs.filter(p=>p.categoria===nombre));
+  renderLibraryGrid(allPdfs.filter(p=>p.categoria===h.nombre));
+  renderAudioGrid(h.nombre);
 }
 
 function volverCarpetas(){
@@ -1774,6 +1858,7 @@ function volverCarpetas(){
   document.getElementById('lib-pdfs-view').style.display='none';
   const searchEl = document.getElementById('lib-search');
   if(searchEl) searchEl.value='';
+  renderCarpetas();
 }
 
 function filterLibrary(){
