@@ -2018,7 +2018,7 @@ async function loadCuestionario(){
     setQuizLoadBar(30, `Banco actual: ${banco.length} preguntas`);
 
     // Si el banco tiene < 30, generar más
-    if(banco.length < 30){
+    if(banco.length < 40){
       setQuizLoadBar(40,'Generando nuevas preguntas con IA...');
       const nuevas = await generarNuevasPreguntas(currentQuizPdfId, banco.length);
       if(nuevas.length){
@@ -2060,7 +2060,7 @@ async function generarNuevasPreguntas(pdfId, yaExisten){
     ctx += `[PÁGINA ${parseInt(idx)+1}]\n${txt}\n\n`;
   });
 
-  const prompt = `Eres un generador de cuestionarios académicos. Genera exactamente 10 preguntas de selección múltiple basadas en el siguiente documento.
+  const prompt = `Eres un generador de cuestionarios académicos. Genera exactamente 20 preguntas de selección múltiple basadas en el siguiente documento.
 
 Devuelve ÚNICAMENTE un array JSON válido, sin texto adicional, sin markdown:
 [
@@ -2074,7 +2074,7 @@ Devuelve ÚNICAMENTE un array JSON válido, sin texto adicional, sin markdown:
 ]
 
 REGLAS:
-- Exactamente 10 preguntas, distintas a las ya existentes (ya existen ${yaExisten})
+- Exactamente 20 preguntas, distintas a las ya existentes (ya existen ${yaExisten})
 - Solo usa información del documento
 - Las opciones incorrectas deben ser plausibles pero claramente incorrectas
 - "correcta" debe ser "a", "b", "c" o "d"
