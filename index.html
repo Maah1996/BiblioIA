@@ -192,6 +192,17 @@ footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
 .data-table td{padding:12px 14px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle;}
 .data-table tr:hover td{background:#fafbff;}
 .data-table tr:last-child td{border-bottom:none;}
+/* AUDIO CARD */
+.audio-card{background:#fff;border-radius:var(--radius);padding:20px 24px;border:1px solid var(--border);box-shadow:var(--shadow);display:flex;flex-direction:column;gap:12px;}
+.audio-card-top{display:flex;align-items:center;gap:14px;}
+.audio-icon{width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#7c3aed,#a855f7);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.audio-info{flex:1;min-width:0;}
+.audio-name{font-size:15px;font-weight:700;color:var(--navy);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.audio-meta{font-size:12px;color:var(--text-g);}
+.audio-player{width:100%;height:40px;border-radius:8px;outline:none;}
+.audio-player::-webkit-media-controls-panel{background:#f1f5f9;}
+.audio-open-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;background:#7c3aed;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;transition:var(--tr);}
+.audio-open-btn:hover{background:#6d28d9;}
 .data-table tr.row-selected td{background:#eff6ff;}
 .row-cb{width:16px;height:16px;cursor:pointer;accent-color:var(--blue);}
 .bulk-bar{display:none;align-items:center;gap:12px;padding:10px 16px;background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:var(--radius-s);margin-bottom:14px;}
@@ -531,6 +542,9 @@ footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
         <div class="nav-item" data-view="subir-pdf" onclick="goTo('subir-pdf')">
           <span class="ni-icon">⬆️</span><span class="ni-text">Subir PDF</span>
         </div>
+        <div class="nav-item" data-view="audios-admin" onclick="goTo('audios-admin')">
+          <span class="ni-icon">🎵</span><span class="ni-text">Audios</span>
+        </div>
         <div class="nav-item" data-view="materias" onclick="goTo('materias')">
           <span class="ni-icon">📁</span><span class="ni-text">Materias</span>
         </div>
@@ -704,6 +718,53 @@ footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
         </div>
       </div>
 
+      <!-- ── AUDIOS (admin) ──────────────────────────── -->
+      <div class="view" id="view-audios-admin">
+        <div class="page-header">
+          <h2>Audios</h2>
+          <p>Agrega y gestiona los audios disponibles por materia</p>
+        </div>
+        <!-- Formulario agregar audio -->
+        <div class="card" style="max-width:680px;margin-bottom:24px;">
+          <div class="card-title">🎵 Agregar audio</div>
+          <div class="field-row col2">
+            <div class="field-group">
+              <label>Nombre del audio</label>
+              <input type="text" id="audio-nombre" placeholder="Ej: Clase 1 — Introducción">
+            </div>
+            <div class="field-group">
+              <label>Materia / Carpeta</label>
+              <select id="audio-categoria">
+                <option value="">Seleccionar materia...</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label>URL del audio</label>
+              <input type="url" id="audio-url" placeholder="https://... (OneDrive, Google Drive, link directo .mp3)">
+              <div style="font-size:11px;color:var(--text-g);margin-top:4px;">💡 Pega el link del audio. Funciona mejor con links directos a archivos .mp3, .m4a, .wav o links de Google Drive.</div>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label>Descripción (opcional)</label>
+              <input type="text" id="audio-desc" placeholder="Tema, duración, docente...">
+            </div>
+          </div>
+          <button class="btn-sm btn-blue" onclick="subirAudio()" style="padding:11px 24px;font-size:13px;">🎵 Agregar audio</button>
+        </div>
+        <!-- Lista audios -->
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <div class="card-title" style="margin:0;">🎵 Audios cargados (<span id="admin-audio-count">0</span>)</div>
+          </div>
+          <div id="admin-audio-list">
+            <div class="empty-state"><div class="es-icon">🎵</div><p>No hay audios aún.<br>Agrega el primero arriba.</p></div>
+          </div>
+        </div>
+      </div>
+
       <!-- ── AJUSTES (admin) ─────────────────────────── -->
       <div class="view" id="view-ajustes">
         <div class="page-header">
@@ -740,13 +801,25 @@ footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
             <div class="empty-state"><div class="es-icon">📂</div><p>Cargando materias...</p></div>
           </div>
         </div>
-        <!-- Vista PDFs dentro de carpeta -->
+        <!-- Vista contenido dentro de carpeta -->
         <div id="lib-pdfs-view" style="display:none;">
           <button onclick="volverCarpetas()" style="display:inline-flex;align-items:center;gap:8px;margin-bottom:20px;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-s);padding:8px 16px;font-size:13px;font-weight:600;color:var(--navy);cursor:pointer;">← Volver a materias</button>
-          <div style="display:flex;gap:12px;margin-bottom:20px;">
-            <input type="text" id="lib-search" placeholder="🔍 Buscar documento..." style="flex:1;padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius-s);font-size:13px;outline:none;font-family:inherit;" oninput="filterLibrary()">
+          <!-- Pestañas -->
+          <div style="display:flex;gap:0;margin-bottom:24px;border-bottom:2px solid var(--border);">
+            <button id="tab-pdfs" onclick="switchLibTab('pdfs')" style="padding:10px 24px;border:none;background:none;font-size:14px;font-weight:700;color:var(--blue);border-bottom:3px solid var(--blue);margin-bottom:-2px;cursor:pointer;">📄 Documentos</button>
+            <button id="tab-audios" onclick="switchLibTab('audios')" style="padding:10px 24px;border:none;background:none;font-size:14px;font-weight:600;color:var(--text-g);border-bottom:3px solid transparent;margin-bottom:-2px;cursor:pointer;">🎵 Audios</button>
           </div>
-          <div id="lib-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;"></div>
+          <!-- Documentos PDF -->
+          <div id="lib-tab-pdfs">
+            <div style="display:flex;gap:12px;margin-bottom:20px;">
+              <input type="text" id="lib-search" placeholder="🔍 Buscar documento..." style="flex:1;padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius-s);font-size:13px;outline:none;font-family:inherit;" oninput="filterLibrary()">
+            </div>
+            <div id="lib-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;"></div>
+          </div>
+          <!-- Audios -->
+          <div id="lib-tab-audios" style="display:none;">
+            <div id="lib-audio-grid" style="display:flex;flex-direction:column;gap:14px;max-width:720px;"></div>
+          </div>
         </div>
       </div>
 
@@ -897,6 +970,7 @@ const DB_PATH        = "biblioteca_maah";                 // Ruta raíz en Fireb
 // ── Firebase init ─────────────────────────────────────────
 let db, auth, currentUser = null, isAdmin = false;
 let allPdfs = [];
+let allAudios = [];
 
 try {
   firebase.initializeApp(FIREBASE_CONFIG);
@@ -1059,6 +1133,7 @@ function goTo(view){
   if(view==='dashboard') loadDashboard();
   if(view==='ajustes') loadAjustes();
   if(view==='materias') loadMaterias();
+  if(view==='audios-admin') loadAdminAudios();
 }
 
 // ══ LOAD ALL DATA ═════════════════════════════════════════
@@ -1068,6 +1143,12 @@ function loadAllData(){
     const data = snap.val()||{};
     Object.entries(data).forEach(([id,p])=>{ if(p) allPdfs.push({id,...p}); });
     allPdfs.sort((a,b)=>new Date(b.fechaSubida||0)-new Date(a.fechaSubida||0));
+  });
+  db.ref(`${DB_PATH}/audios`).on('value', snap=>{
+    allAudios = [];
+    const data = snap.val()||{};
+    Object.entries(data).forEach(([id,a])=>{ if(a) allAudios.push({id,...a}); });
+    allAudios.sort((a,b)=>new Date(b.fechaSubida||0)-new Date(a.fechaSubida||0));
   });
   loadAllMaterias();
 }
@@ -1359,11 +1440,8 @@ function loadAllMaterias(){
 }
 
 function updateMateriaSelects(){
-  const sel = document.getElementById('pdf-categoria');
-  if(sel){
-    sel.innerHTML = '<option value="">Seleccionar materia...</option>' +
-      allMaterias.map(m=>`<option value="${m.nombre}">${m.icono||'📁'} ${m.nombre}</option>`).join('');
-  }
+  const opts = '<option value="">Seleccionar materia...</option>' + allMaterias.map(m=>`<option value="${m.nombre}">${m.icono||'📁'} ${m.nombre}</option>`).join('');
+  ['pdf-categoria','audio-categoria'].forEach(id=>{ const s=document.getElementById(id); if(s) s.innerHTML=opts; });
 }
 
 function loadMaterias(){
@@ -1426,6 +1504,98 @@ async function toggleMateria(id, activo){
   showToast(!activo ? 'Carpeta activada — ahora es visible para usuarios ✓' : 'Carpeta oculta — los usuarios no la verán', !activo?'green':'');
 }
 
+// ══ AUDIOS (admin) ════════════════════════════════════════
+function updateAudioSelects(){
+  ['audio-categoria'].forEach(selId=>{
+    const sel = document.getElementById(selId);
+    if(sel) sel.innerHTML='<option value="">Seleccionar materia...</option>'+allMaterias.map(m=>`<option value="${m.nombre}">${m.icono||'📁'} ${m.nombre}</option>`).join('');
+  });
+}
+
+function loadAdminAudios(){
+  updateAudioSelects();
+  const el = document.getElementById('admin-audio-list');
+  const count = document.getElementById('admin-audio-count');
+  if(!el) return;
+  if(!allAudios.length){ count.textContent='0'; el.innerHTML='<div class="empty-state"><div class="es-icon">🎵</div><p>No hay audios aún.<br>Agrega el primero arriba.</p></div>'; return; }
+  count.textContent=allAudios.length;
+  el.innerHTML=`<table class="data-table"><thead><tr><th>Audio</th><th>Materia</th><th>URL</th><th>Fecha</th><th>Acción</th></tr></thead><tbody>
+    ${allAudios.map(a=>`<tr>
+      <td><div style="font-weight:600;color:var(--navy);">${a.nombre||'Sin nombre'}</div><div style="font-size:11px;color:var(--text-g);">${a.descripcion||''}</div></td>
+      <td><span class="badge badge-blue">${a.categoria||'—'}</span></td>
+      <td style="text-align:center;">${a.urlAudio?`<a href="${a.urlAudio}" target="_blank" style="color:var(--green);font-size:18px;">🔗</a>`:'<span style="color:var(--border);">—</span>'}</td>
+      <td>${fmtDate(a.fechaSubida)}</td>
+      <td><button class="btn-sm btn-red" onclick="deleteAudio('${a.id}','${(a.nombre||'').replace(/'/g,"\\'")}')">🗑️</button></td>
+    </tr>`).join('')}
+  </tbody></table>`;
+}
+
+async function subirAudio(){
+  const nombre = document.getElementById('audio-nombre').value.trim();
+  const cat    = document.getElementById('audio-categoria').value;
+  const url    = document.getElementById('audio-url').value.trim();
+  const desc   = document.getElementById('audio-desc').value.trim();
+  if(!nombre){ showToast('Escribe el nombre del audio.','red'); return; }
+  if(!cat){ showToast('Selecciona una materia.','red'); return; }
+  if(!url){ showToast('Pega la URL del audio.','red'); return; }
+  const newRef = db.ref(`${DB_PATH}/audios`).push();
+  await newRef.set({ id: newRef.key, nombre, categoria: cat, urlAudio: url, descripcion: desc, fechaSubida: new Date().toISOString(), subidoPor: currentUser.email });
+  document.getElementById('audio-nombre').value='';
+  document.getElementById('audio-url').value='';
+  document.getElementById('audio-desc').value='';
+  showToast(`Audio "${nombre}" agregado ✓`,'green');
+  loadAdminAudios();
+}
+
+async function deleteAudio(id, nombre){
+  modalConfirm({
+    icon:'🎵', title:'¿Eliminar audio?',
+    msg:`<strong>${nombre}</strong><br><br>Esta acción no se puede deshacer.`,
+    okLabel:'Eliminar',
+    onOk: async()=>{
+      await db.ref(`${DB_PATH}/audios/${id}`).remove();
+      showToast('Audio eliminado.','green');
+      loadAdminAudios();
+    }
+  });
+}
+
+// ══ AUDIOS (usuario) ══════════════════════════════════════
+let currentLibTab = 'pdfs';
+
+function switchLibTab(tab){
+  currentLibTab = tab;
+  document.getElementById('lib-tab-pdfs').style.display = tab==='pdfs' ? '' : 'none';
+  document.getElementById('lib-tab-audios').style.display = tab==='audios' ? '' : 'none';
+  document.getElementById('tab-pdfs').style.color = tab==='pdfs' ? 'var(--blue)' : 'var(--text-g)';
+  document.getElementById('tab-pdfs').style.borderBottomColor = tab==='pdfs' ? 'var(--blue)' : 'transparent';
+  document.getElementById('tab-pdfs').style.fontWeight = tab==='pdfs' ? '700' : '600';
+  document.getElementById('tab-audios').style.color = tab==='audios' ? '#7c3aed' : 'var(--text-g)';
+  document.getElementById('tab-audios').style.borderBottomColor = tab==='audios' ? '#7c3aed' : 'transparent';
+  if(tab==='audios') renderAudioGrid(currentMateria);
+}
+
+function renderAudioGrid(materia){
+  const el = document.getElementById('lib-audio-grid');
+  if(!el) return;
+  const audios = materia ? allAudios.filter(a=>a.categoria===materia) : allAudios;
+  if(!audios.length){ el.innerHTML='<div class="empty-state"><div class="es-icon">🎵</div><p>No hay audios en esta materia.</p></div>'; return; }
+  el.innerHTML = audios.map(a=>{
+    const esDirecto = /\.(mp3|wav|ogg|m4a|aac|flac)(\?.*)?$/i.test(a.urlAudio||'');
+    return `<div class="audio-card">
+      <div class="audio-card-top">
+        <div class="audio-icon">🎵</div>
+        <div class="audio-info">
+          <div class="audio-name">${a.nombre||'Sin nombre'}</div>
+          <div class="audio-meta">${a.categoria||''} ${a.descripcion?'· '+a.descripcion:''}</div>
+        </div>
+      </div>
+      ${esDirecto ? `<audio class="audio-player" controls preload="none"><source src="${a.urlAudio}"><p style="font-size:12px;color:var(--text-g);">Tu navegador no soporta audio.</p></audio>` : ''}
+      ${a.urlAudio ? `<div><a class="audio-open-btn" href="${a.urlAudio}" target="_blank" rel="noopener">▶ Abrir / Escuchar</a></div>` : '<div style="font-size:12px;color:var(--red);">Sin URL configurada</div>'}
+    </div>`;
+  }).join('');
+}
+
 // ══ USER LIBRARY ══════════════════════════════════════════
 let currentMateria = null;
 
@@ -1443,22 +1613,24 @@ function renderCarpetas(){
   }
   el.innerHTML = visibles.map(m=>{
     const pdfCount = allPdfs.filter(p=>p.categoria===m.nombre).length;
+    const audioCount = allAudios.filter(a=>a.categoria===m.nombre).length;
     return `<div onclick="abrirMateria('${m.nombre}')" style="background:#fff;border-radius:var(--radius);padding:28px 22px;border:1px solid var(--border);box-shadow:var(--shadow);cursor:pointer;transition:var(--tr);text-align:center;" onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='var(--shadow-l)';this.style.borderColor='var(--blue-l)'" onmouseleave="this.style.transform='';this.style.boxShadow='var(--shadow)';this.style.borderColor='var(--border)'">
       <div style="font-size:48px;margin-bottom:12px;">${m.icono||'📁'}</div>
       <div style="font-size:15px;font-weight:700;color:var(--navy);margin-bottom:6px;">${m.nombre}</div>
-      <div style="font-size:12px;color:var(--text-g);">${pdfCount} documento${pdfCount!==1?'s':''}</div>
+      <div style="font-size:12px;color:var(--text-g);">${pdfCount} doc.${audioCount?` · 🎵 ${audioCount} audio${audioCount!==1?'s':''}`:''}</div>
     </div>`;
   }).join('');
 }
 
 function abrirMateria(nombre){
   currentMateria = nombre;
+  currentLibTab = 'pdfs';
   document.getElementById('lib-titulo').textContent = nombre;
-  document.getElementById('lib-subtitulo').textContent = 'Documentos de esta materia';
+  document.getElementById('lib-subtitulo').textContent = 'Documentos y audios de esta materia';
   document.getElementById('lib-carpetas-view').style.display='none';
   document.getElementById('lib-pdfs-view').style.display='';
-  const pdfsMateria = allPdfs.filter(p=>p.categoria===nombre);
-  renderLibraryGrid(pdfsMateria);
+  switchLibTab('pdfs');
+  renderLibraryGrid(allPdfs.filter(p=>p.categoria===nombre));
 }
 
 function volverCarpetas(){
