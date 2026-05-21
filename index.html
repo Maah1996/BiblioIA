@@ -2234,8 +2234,16 @@ async function loadCuestionario(){
     const snap = await db.ref(`${DB_PATH}/cuestionarios/${currentQuizPdfId}/preguntas`).once('value');
     let banco = [];
     const data = snap.val()||{};
-    Object.entries(data).forEach(([id,q])=>{ if(q) banco.push({id,...q}); });
-    setQuizLoadBar(30, `Banco actual: ${banco.length} preguntas`);
+    Object.entries(data).forEach(([id,q])=>{
+      // Solo incluir preguntas con estructura válida
+      if(q && q.pregunta && q.alternativas && q.correcta &&
+         typeof q.alternativas==='object' &&
+         q.alternativas.a && q.alternativas.b && q.alternativas.c && q.alternativas.d &&
+         ['a','b','c','d'].includes(q.correcta)){
+        banco.push({id,...q});
+      }
+    });
+    setQuizLoadBar(30, `Banco actual: ${banco.length} preguntas válidas`);
 
     if(banco.length < 40){
       setQuizLoadBar(40,'Generando nuevas preguntas con IA...');
@@ -2308,35 +2316,32 @@ async function generarNuevasPreguntas(pdfId, yaExisten){
 
   setQuizLoadBar(55,'Consultando IA para generar preguntas...');
 
-  const prompt = `Eres un generador de cuestionarios académicos. Genera exactamente 20 preguntas de selección múltiple basadas ÚNICAMENTE en el documento proporcionado.
+  const prompt = `Genera exactamente 20 preguntas de selección múltiple sobre el documento. Responde SOLO con un array JSON, sin texto extra:
+[{"pregunta":"...?","alternativas":{"a":"...","b":"...","c":"...","d":"..."},"correcta":"b","pagina":1,"fragmento":"cita del doc"}]
 
-Responde SOLO con un array JSON válido, sin explicaciones, sin markdown, sin texto antes ni después:
-[
-  {
-    "pregunta": "Texto de la pregunta?",
-    "alternativas": {"a":"Opción A","b":"Opción B","c":"Opción C","d":"Opción D"},
-    "correcta": "b",
-    "pagina": 3,
-    "fragmento": "Cita textual exacta del documento que justifica la respuesta correcta"
-  }
-]
-
-REGLAS ESTRICTAS:
-- Devuelve exactamente 20 objetos en el array
-- "correcta" debe ser "a", "b", "c" o "d"
-- Las alternativas incorrectas deben ser plausibles
-- Cubre distintos temas y páginas del documento
-- No repitas preguntas similares a las ${yaExisten} ya existentes
-- Solo información contenida en el documento
+REGLAS: 20 preguntas, "correcta" es a/b/c/d, solo info del documento, no repetir las ${yaExisten} existentes.
 
 DOCUMENTO:
-${ctx.slice(0,40000)}`;
+${ctx.slice(0,25000)}`;
 
-  const resp = await fetch('https://biblioia-proxy.maahantartico.workers.dev/', {
-    method:'POST',
-    headers:{'Content-Type':'application/json','x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01'},
-    body: JSON.stringify({model:'claude-sonnet-4-5',max_tokens:6000,messages:[{role:'user',content:prompt}]})
-  });
+  // Timeout de 90 segundos
+  const controller = new AbortController();
+  const timeoutId = setTimeout(()=>controller.abort(), 90000);
+
+  let resp;
+  try {
+    resp = await fetch('https://biblioia-proxy.maahantartico.workers.dev/', {
+      method:'POST',
+      signal: controller.signal,
+      headers:{'Content-Type':'application/json','x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01'},
+      body: JSON.stringify({model:'claude-sonnet-4-5',max_tokens:5000,messages:[{role:'user',content:prompt}]})
+    });
+  } catch(fetchErr){
+    if(fetchErr.name==='AbortError') throw new Error('La IA tardó demasiado (>90s). Intenta de nuevo.');
+    throw fetchErr;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if(!resp.ok){
     let errMsg = `Error HTTP ${resp.status}`;
@@ -2375,41 +2380,55 @@ function setQuizLoadBar(pct, msg){
 }
 
 function renderQuiz(){
+  // Filtrar preguntas válidas (con estructura correcta)
+  currentQuizPreguntas = currentQuizPreguntas.filter(q=>
+    q && q.pregunta && q.alternativas &&
+    typeof q.alternativas === 'object' &&
+    q.alternativas.a && q.alternativas.b && q.alternativas.c && q.alternativas.d &&
+    ['a','b','c','d'].includes(q.correcta)
+  );
+
   if(!currentQuizPreguntas.length){
-    mostrarErrorQuiz('Sin preguntas','No se cargaron preguntas para este cuestionario. Intenta de nuevo.');
+    mostrarErrorQuiz('Sin preguntas válidas','Las preguntas del banco están dañadas o incompletas. Haz clic en Reintentar para generar nuevas.');
     return;
   }
-  document.getElementById('quiz-loading').style.display='none';
-  document.getElementById('quiz-form').style.display='';
+
+  // Actualizar badge del banco (async, no bloquea)
+  db.ref(`${DB_PATH}/cuestionarios/${currentQuizPdfId}/preguntas`).once('value',s=>{
+    const total = Object.keys(s.val()||{}).length;
+    const el = document.getElementById('quiz-banco-info');
+    if(el) el.textContent=`📚 Banco: ${total} preguntas`;
+  });
+
   document.getElementById('quiz-pdf-nombre').textContent=currentQuizNombre;
   document.getElementById('quiz-total-label').textContent=currentQuizPreguntas.length;
   document.getElementById('quiz-res-nombre').textContent=currentQuizNombre;
-
-  // Banco info
-  db.ref(`${DB_PATH}/cuestionarios/${currentQuizPdfId}/preguntas`).once('value',s=>{
-    const total = Object.keys(s.val()||{}).length;
-    document.getElementById('quiz-banco-info').textContent=`📚 Banco: ${total} preguntas`;
-  });
-
   document.getElementById('quiz-progress-fill').style.width='0%';
   document.getElementById('quiz-progress-label').textContent='Responde todas las preguntas para enviar';
 
   const lista = document.getElementById('quiz-questions-list');
-  lista.innerHTML = currentQuizPreguntas.map((q,i)=>`
-    <div class="quiz-q-card" id="qcard-${i}">
-      <div class="quiz-q-num">Pregunta ${i+1} de ${currentQuizPreguntas.length} · Página ${q.pagina||'?'}</div>
-      <div class="quiz-q-text">${q.pregunta}</div>
-      <div class="quiz-options">
-        ${['a','b','c','d'].map(k=>`
-          <div class="quiz-opt" id="qopt-${i}-${k}" onclick="seleccionarOpcion(${i},'${k}')">
-            <div class="quiz-opt-key">${k.toUpperCase()}</div>
-            <span>${q.alternativas[k]||''}</span>
-          </div>`).join('')}
-      </div>
-    </div>`).join('');
+  try {
+    lista.innerHTML = currentQuizPreguntas.map((q,i)=>`
+      <div class="quiz-q-card" id="qcard-${i}">
+        <div class="quiz-q-num">Pregunta ${i+1} de ${currentQuizPreguntas.length} · Página ${q.pagina||'?'}</div>
+        <div class="quiz-q-text">${q.pregunta||''}</div>
+        <div class="quiz-options">
+          ${['a','b','c','d'].map(k=>`
+            <div class="quiz-opt" id="qopt-${i}-${k}" onclick="seleccionarOpcion(${i},'${k}')">
+              <div class="quiz-opt-key">${k.toUpperCase()}</div>
+              <span>${(q.alternativas&&q.alternativas[k])||''}</span>
+            </div>`).join('')}
+        </div>
+      </div>`).join('');
+    lista.addEventListener('change', actualizarProgreso);
+  } catch(err){
+    mostrarErrorQuiz('Error al mostrar preguntas', err.message);
+    return;
+  }
 
-  // Listener para progreso
-  lista.addEventListener('change', actualizarProgreso);
+  // Mostrar formulario SOLO si todo fue bien
+  document.getElementById('quiz-loading').style.display='none';
+  document.getElementById('quiz-form').style.display='';
 }
 
 function seleccionarOpcion(qIdx, key){
