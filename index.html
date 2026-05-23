@@ -975,6 +975,13 @@ footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
 
       <!-- ── CUESTIONARIO ──────────────────────────── -->
       <div class="view" id="view-cuestionario">
+        <div id="quiz-recommend" style="display:none;max-width:560px;margin:0 auto;padding:40px 20px;text-align:center;">
+          <div style="font-size:52px;margin-bottom:16px;">📚</div>
+          <div style="font-size:20px;font-weight:800;color:var(--navy);margin-bottom:10px;" id="qr-titulo">Banco de preguntas</div>
+          <div style="font-size:14px;color:var(--text-g);line-height:1.7;margin-bottom:28px;" id="qr-desc"></div>
+          <div style="background:linear-gradient(135deg,#eff6ff,#f0fdf4);border:1px solid #bfdbfe;border-radius:12px;padding:20px 24px;margin-bottom:28px;text-align:left;" id="qr-info"></div>
+          <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;" id="qr-btns"></div>
+        </div>
         <div id="quiz-loading" style="text-align:center;padding:60px 20px;">
           <div style="font-size:48px;margin-bottom:16px;">🧠</div>
           <div style="font-size:18px;font-weight:700;color:var(--navy);margin-bottom:8px;" id="quiz-loading-titulo">Preparando cuestionario...</div>
@@ -1955,17 +1962,16 @@ function renderPdfSelectorList(pdfs){
 }
 
 // ══ CLAUDE QUERY ══════════════════════════════════════════
-const SYSTEM_PROMPT = `Eres un asistente académico de alta precisión. Tu ÚNICA función es responder preguntas basándote EXCLUSIVAMENTE en los documentos proporcionados.
+const SYSTEM_PROMPT = `Eres un asistente académico que explica el contenido de documentos de forma clara y cercana, como un profesor que conoce bien el material.
 
-REGLAS ABSOLUTAS:
-1. NUNCA uses conocimiento externo. Solo usa la información de los documentos.
-2. Si la información no está en los documentos, responde EXACTAMENTE: "Esta información no se encuentra en los documentos seleccionados."
-3. SIEMPRE cita la fuente con el formato: [Archivo: nombre.pdf | Página: X]
-4. Incluye el fragmento exacto del texto donde encontraste la información.
-5. Si hay información en múltiples páginas, cita todas las fuentes relevantes.
-6. Sé preciso, claro y académicamente correcto.
-7. Estructura tu respuesta:
-   📋 RESPUESTA: [respuesta directa y clara]
+CÓMO RESPONDER:
+1. Explica con tus propias palabras, de forma natural y comprensible — no copies texto literal del documento.
+2. Usa un tono conversacional pero preciso: como si le explicaras a un compañero que necesita entender el tema.
+3. Si el tema no está en los documentos, dilo de forma natural: "Ese tema no aparece en los documentos que tienes seleccionados."
+4. Siempre indica de dónde viene la información con el formato: [Archivo: nombre.pdf | Página: X]
+5. Si la información aparece en varias páginas, cita todas las fuentes relevantes.
+6. Estructura tu respuesta así:
+   💡 [explicación clara y humanizada del tema]
    📄 FUENTE: [Archivo: X | Página: Y]
    💬 FRAGMENTO: "[cita textual del documento]"`;
 
@@ -2266,18 +2272,86 @@ function abrirCuestionario(pdfId){
   currentQuizPdfId = pdfId;
   currentQuizNombre = pdf.nombre||'Documento';
   goTo('cuestionario');
+
+  const paginas = parseInt(pdf.paginas)||0;
+  const target = paginas <= 50 ? 50 : paginas <= 100 ? 100 : 150;
+  const tiempoMin = target === 50 ? '2-3' : target === 100 ? '4-6' : '7-10';
+
+  document.getElementById('quiz-recommend').style.display='none';
+  document.getElementById('quiz-loading').style.display='none';
+  document.getElementById('quiz-form').style.display='none';
+  document.getElementById('quiz-results').style.display='none';
+
+  db.ref(`${DB_PATH}/cuestionarios/${pdfId}/preguntas`).once('value', snap=>{
+    const data = snap.val()||{};
+    const bancoSize = Object.values(data).filter(q=>
+      q && q.pregunta && q.alternativas &&
+      'a' in q.alternativas && ['a','b','c','d'].includes(q.correcta)
+    ).length;
+
+    if(bancoSize >= target){
+      loadCuestionario(target);
+    } else {
+      mostrarRecomendacion(pdf, bancoSize, target, tiempoMin);
+    }
+  });
 }
 
-async function loadCuestionario(){
+function mostrarRecomendacion(pdf, bancoActual, target, tiempoMin){
+  const paginas = parseInt(pdf.paginas)||0;
+  document.getElementById('qr-titulo').textContent = bancoActual === 0 ? 'Primera vez en este documento' : 'Banco incompleto';
+  document.getElementById('qr-desc').innerHTML = bancoActual === 0
+    ? `Este PDF tiene <strong>${paginas} páginas</strong>. Te recomiendo generar un banco de <strong>${target} preguntas</strong> ahora — solo esta vez. Después cada cuestionario es instantáneo y gratis.`
+    : `Este PDF ya tiene <strong>${bancoActual} preguntas</strong>. Para alcanzar ${target} necesito generar ${target - bancoActual} más.`;
+
+  document.getElementById('qr-info').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;">
+      <div>📄 <strong>Documento:</strong> ${escHtml(pdf.nombre||'Sin nombre')}</div>
+      <div>📖 <strong>Páginas:</strong> ${paginas}</div>
+      <div>📝 <strong>Banco objetivo:</strong> ${target} preguntas</div>
+      <div>⏱️ <strong>Tiempo estimado:</strong> ${tiempoMin} minutos (solo esta vez)</div>
+      <div>♾️ <strong>Después:</strong> cuestionarios ilimitados e instantáneos</div>
+    </div>`;
+
+  const btns = document.getElementById('qr-btns');
+  btns.innerHTML = '';
+
+  const btnGenerar = document.createElement('button');
+  btnGenerar.className = 'btn-primary';
+  btnGenerar.style.cssText = 'padding:12px 28px;font-size:14px;font-weight:700;border-radius:10px;cursor:pointer;';
+  btnGenerar.textContent = `🚀 Generar banco de ${target} preguntas`;
+  btnGenerar.onclick = ()=>{ document.getElementById('quiz-recommend').style.display='none'; loadCuestionario(target); };
+  btns.appendChild(btnGenerar);
+
+  if(bancoActual >= 20){
+    const btnExistente = document.createElement('button');
+    btnExistente.style.cssText = 'padding:12px 20px;font-size:13px;background:var(--bg);border:1px solid var(--border);border-radius:10px;cursor:pointer;color:var(--text);font-weight:600;';
+    btnExistente.textContent = `Usar las ${bancoActual} preguntas actuales`;
+    btnExistente.onclick = ()=>{ document.getElementById('quiz-recommend').style.display='none'; loadCuestionario(bancoActual); };
+    btns.appendChild(btnExistente);
+  }
+
+  const btnVolver = document.createElement('button');
+  btnVolver.style.cssText = 'padding:10px 16px;font-size:12px;background:none;border:none;color:var(--text-g);cursor:pointer;';
+  btnVolver.textContent = '← Volver';
+  btnVolver.onclick = ()=>goTo('biblioteca-user');
+  btns.appendChild(btnVolver);
+
+  document.getElementById('quiz-recommend').style.display='block';
+}
+
+async function loadCuestionario(targetSize){
   if(!currentQuizPdfId) return;
-  // Limpiar estado anterior
+  targetSize = targetSize || 20;
+
   document.querySelectorAll('.quiz-retry-btn').forEach(b=>b.remove());
   document.getElementById('quiz-load-bar').style.background='';
   document.getElementById('quiz-loading').style.display='';
+  document.getElementById('quiz-recommend').style.display='none';
   document.getElementById('quiz-form').style.display='none';
   document.getElementById('quiz-results').style.display='none';
   document.getElementById('quiz-loading-titulo').textContent=`Preparando: ${currentQuizNombre}`;
-  setQuizLoadBar(10,'Revisando banco de preguntas...');
+  setQuizLoadBar(5,'Revisando banco de preguntas...');
 
   try {
     const snap = await db.ref(`${DB_PATH}/cuestionarios/${currentQuizPdfId}/preguntas`).once('value');
@@ -2292,27 +2366,48 @@ async function loadCuestionario(){
         banco.push({id,...q});
       }
     });
-    setQuizLoadBar(30, `Banco actual: ${banco.length} preguntas válidas`);
+    setQuizLoadBar(10, `Banco actual: ${banco.length} preguntas válidas`);
 
-    // Generar en lotes de 10 para no superar el timeout de 30s del Worker
-    if(banco.length < 20){
-      const lotes = banco.length < 10 ? 2 : 1;
-      for(let lote=0; lote<lotes; lote++){
-        setQuizLoadBar(40 + lote*20, `Generando preguntas — lote ${lote+1} de ${lotes}...`);
-        try {
-          const nuevas = await generarNuevasPreguntas(currentQuizPdfId, banco.length);
-          if(nuevas && nuevas.length){
-            for(const q of nuevas){
-              const ref = db.ref(`${DB_PATH}/cuestionarios/${currentQuizPdfId}/preguntas`).push();
-              await ref.set({...q, id: ref.key});
-              banco.push({...q, id: ref.key});
-            }
+    // Cargar texto completo del PDF solo si necesitamos generar
+    let fullCtx = '';
+    if(banco.length < targetSize){
+      setQuizLoadBar(15,'Cargando documento...');
+      const textoSnap = await db.ref(`${DB_PATH}/pdfs/${currentQuizPdfId}/texto`).once('value');
+      const textos = textoSnap.val()||{};
+      Object.entries(textos).forEach(([idx,txt])=>{
+        if(txt && txt.trim()) fullCtx += `[PÁGINA ${parseInt(idx)+1}]\n${txt}\n\n`;
+      });
+      if(fullCtx.trim().length < 100){
+        throw new Error('El PDF no tiene texto extraíble (puede ser imagen escaneada). Sube un PDF con texto seleccionable.');
+      }
+    }
+
+    // Generar en lotes de 10, rotando secciones del documento
+    const SECTION_SIZE = 8000;
+    const totalSections = Math.max(1, Math.ceil(fullCtx.length / SECTION_SIZE));
+    let sectionIdx = 0;
+
+    while(banco.length < targetSize){
+      const pct = Math.min(90, 20 + (banco.length / targetSize) * 70);
+      setQuizLoadBar(pct, `Generando preguntas ${banco.length} / ${targetSize}...`);
+
+      const start = (sectionIdx % totalSections) * SECTION_SIZE;
+      const textSection = fullCtx.slice(start, start + SECTION_SIZE) || fullCtx.slice(0, SECTION_SIZE);
+      sectionIdx++;
+
+      try {
+        const nuevas = await generarNuevasPreguntas(currentQuizPdfId, banco.length, textSection);
+        if(nuevas && nuevas.length){
+          for(const q of nuevas){
+            const ref = db.ref(`${DB_PATH}/cuestionarios/${currentQuizPdfId}/preguntas`).push();
+            await ref.set({...q, id: ref.key});
+            banco.push({...q, id: ref.key});
           }
-          setQuizLoadBar(60 + lote*20, `Banco: ${banco.length} preguntas`);
-        } catch(loteErr){
-          if(banco.length >= 10) break; // suficiente para mostrar quiz
-          throw loteErr;
         }
+      } catch(loteErr){
+        if(loteErr.message === 'RATE_LIMIT') throw loteErr;
+        if(banco.length >= 20) break;
+        throw loteErr;
       }
     }
 
@@ -2332,7 +2427,7 @@ async function loadCuestionario(){
   } catch(e){
     console.error('Quiz error:',e);
     if(e.message === 'RATE_LIMIT'){
-      mostrarErrorQuiz('Límite de uso alcanzado', 'La API está temporalmente saturada. Espera 1 minuto e intenta de nuevo.');
+      mostrarErrorQuiz('Límite de uso alcanzado','La API está temporalmente saturada. Espera 1 minuto e intenta de nuevo.');
     } else {
       mostrarErrorQuiz('Error al generar el cuestionario', e.message||'Revisa la consola para más detalles.');
     }
@@ -2362,34 +2457,29 @@ function mostrarErrorQuiz(titulo, detalle){
   }
 }
 
-async function generarNuevasPreguntas(pdfId, yaExisten){
+async function generarNuevasPreguntas(pdfId, yaExisten, textSection){
   if(!CLAUDE_API_KEY) await loadClaudeKey();
   if(!CLAUDE_API_KEY) throw new Error('No hay API Key configurada. Ve a Ajustes y guarda la clave.');
 
-  // Cargar texto del PDF desde Firebase
-  setQuizLoadBar(45,'Cargando texto del documento...');
-  const snap = await db.ref(`${DB_PATH}/pdfs/${pdfId}/texto`).once('value');
-  const textos = snap.val()||{};
-  let ctx = '';
-  Object.entries(textos).forEach(([idx,txt])=>{
-    if(txt && txt.trim()) ctx += `[PÁGINA ${parseInt(idx)+1}]\n${txt}\n\n`;
-  });
-
-  if(ctx.trim().length < 100){
-    throw new Error('El PDF no tiene texto extraíble (puede ser imagen escaneada). Sube un PDF con texto seleccionable.');
-  }
-
-  setQuizLoadBar(55,'Consultando IA para generar preguntas...');
-
-  const prompt = `Genera exactamente 10 preguntas de selección múltiple sobre el documento. Responde SOLO con un array JSON, sin texto extra ni markdown:
+  const prompt = `Genera exactamente 10 preguntas de selección múltiple. Responde SOLO con un array JSON válido, sin texto extra ni markdown:
 [{"pregunta":"...?","alternativas":{"a":"...","b":"...","c":"...","d":"..."},"correcta":"b","pagina":1,"fragmento":"cita breve del doc"}]
 
-REGLAS: exactamente 10 preguntas, "correcta" es a/b/c/d, solo info del documento, no repetir las ${yaExisten} existentes, alternativas cortas (máx 15 palabras).
+REGLAS GENERALES:
+- Exactamente 10 preguntas, "correcta" es a/b/c/d
+- Solo usa información del documento
+- No repitas las ${yaExisten} preguntas ya existentes
+- Alternativas cortas (máx 12 palabras cada una)
+
+REGLAS PARA LAS ALTERNATIVAS INCORRECTAS (crítico):
+- Las 3 alternativas incorrectas deben ser PLAUSIBLES y del mismo tema del documento
+- Deben representar conceptos similares, confusiones típicas o errores comunes del área
+- NUNCA uses respuestas absurdas, de otro tema o fáciles de descartar de inmediato
+- Si la respuesta correcta es un número/artículo/norma, las incorrectas deben ser otros números/artículos/normas del mismo documento
+- El estudiante debe conocer bien el material para identificar la correcta
 
 DOCUMENTO:
-${ctx.slice(0,8000)}`;
+${textSection}`;
 
-  // Timeout de 90 segundos
   const controller = new AbortController();
   const timeoutId = setTimeout(()=>controller.abort(), 90000);
 
@@ -2399,7 +2489,7 @@ ${ctx.slice(0,8000)}`;
       method:'POST',
       signal: controller.signal,
       headers:{'Content-Type':'application/json','x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01'},
-      body: JSON.stringify({model:'claude-sonnet-4-5',max_tokens:2500,messages:[{role:'user',content:prompt}]})
+      body: JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2500,messages:[{role:'user',content:prompt}]})
     });
   } catch(fetchErr){
     if(fetchErr.name==='AbortError') throw new Error('La IA tardó demasiado (>90s). Intenta de nuevo.');
