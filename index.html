@@ -2804,15 +2804,16 @@ async function mostrarPaginaRevision(idx){
       : '';
 
     panel.innerHTML=`
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);">
-        <span style="font-size:14px;font-weight:700;color:var(--navy);">📄 Página ${q.pagina||'?'}</span>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border);">
+        <span style="font-size:13px;font-weight:700;color:var(--navy);">📄 Página ${q.pagina||'?'}</span>
         ${linkPdf}
       </div>
-      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:#92400e;">
+      <div style="font-size:13px;font-weight:600;color:var(--navy);line-height:1.5;margin-bottom:10px;">${escHtml(q.pregunta||'')}</div>
+      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:9px 13px;margin-bottom:10px;font-size:12px;color:#92400e;">
         <strong>Respuesta correcta:</strong> ${escHtml(q.alternativas[q.correcta]||'')}
       </div>
       ${citaHtml}
-      <div style="font-size:13px;line-height:1.9;color:var(--text);">${html}</div>`;
+      <div style="font-size:12.5px;line-height:1.9;color:var(--text);">${html}</div>`;
   } catch(e){
     panel.innerHTML='<div style="padding:20px;color:var(--red);">Error al cargar la página.</div>';
   }
