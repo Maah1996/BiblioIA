@@ -2775,13 +2775,39 @@ async function mostrarPaginaRevision(idx){
 
   try{
     const snap = await db.ref(`${DB_PATH}/pdfs/${currentQuizPdfId}/texto/${pageIdx}`).once('value');
-    let texto = snap.val()||'(Texto de esta página no disponible)';
+    const textoRaw = snap.val()||'(Texto de esta página no disponible)';
 
-    let html = escHtml(texto).replace(/\n/g,'<br>');
-    if(q.fragmento){
-      const fragEsc = escHtml(q.fragmento.trim());
-      html = html.replace(fragEsc, `<mark style="background:#fef08a;padding:2px 4px;border-radius:3px;font-weight:600;">${fragEsc}</mark>`);
+    // Format raw text for display: add blank line before article/chapter headings
+    // and after sentences ending before a capital letter on a new line
+    function fmtEsc(t){
+      t = t.replace(/\n(Art[íi]culo\s+\d+|ARTÍCULO\s+\d+|Art\.\s*\d+|Capítulo\s+\d+|CAPÍTULO\s+\d+)/gi,'\n\n$1');
+      t = t.replace(/([.;])\n([A-ZÁÉÍÓÚÜÑ])/g,'$1\n\n$2');
+      return escHtml(t).replace(/\n\n/g,'<br><br>').replace(/\n/g,'<br>');
     }
+
+    let html;
+    const MARK_O = `<mark style="background:#fef08a;padding:2px 5px;border-radius:3px;font-weight:600;">`;
+
+    // Fuzzy highlight: build regex from first 8 words of fragment, allowing \s+ between them
+    // so "Artículo 5.- El empleador" matches even if text has newlines instead of spaces
+    if(q.fragmento && q.fragmento.trim().length > 10){
+      const words = q.fragmento.trim().split(/\s+/).slice(0, 8);
+      if(words.length >= 3){
+        try{
+          const rx = new RegExp(
+            words.map(w=>w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('\\s+'),
+            'i'
+          );
+          const m = rx.exec(textoRaw);
+          if(m){
+            html = fmtEsc(textoRaw.slice(0, m.index))
+                 + MARK_O + escHtml(m[0]).replace(/\n/g,' ') + '</mark>'
+                 + fmtEsc(textoRaw.slice(m.index + m[0].length));
+          }
+        } catch(rxErr){ /* regex inválida, continuar sin highlight */ }
+      }
+    }
+    if(!html) html = fmtEsc(textoRaw);
 
     const pdf = allPdfs.find(p=>p.id===currentQuizPdfId);
     const linkPdf = pdf?.urlPdf
