@@ -856,10 +856,14 @@ footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
             </select>
           </div>
         </div>
+        <!-- Botón borrar todos los bancos -->
+        <div style="margin-bottom:14px;">
+          <button class="btn-sm btn-red" onclick="limpiarTodosLosBancos()" style="padding:7px 16px;font-size:12px;">🗑️ Borrar TODOS los bancos</button>
+        </div>
         <!-- Info banco -->
         <div id="banco-info" style="display:none;margin-bottom:16px;display:none;align-items:center;gap:12px;flex-wrap:wrap;">
           <span class="quiz-banco-badge" id="banco-total">📚 0 preguntas</span>
-          <button class="btn-sm btn-red" onclick="limpiarBanco()" style="padding:7px 16px;font-size:12px;">🗑️ Limpiar banco completo</button>
+          <button class="btn-sm btn-red" onclick="limpiarBanco()" style="padding:7px 16px;font-size:12px;">🗑️ Limpiar banco de este PDF</button>
         </div>
         <!-- Lista preguntas -->
         <div id="banco-lista">
@@ -2287,6 +2291,19 @@ async function limpiarBanco(){
     onOk: async()=>{
       await db.ref(`${DB_PATH}/cuestionarios/${pdfId}/preguntas`).remove();
       showToast('Banco limpiado.','green');
+      loadBancoPreguntas();
+    }
+  });
+}
+
+async function limpiarTodosLosBancos(){
+  modalConfirm({
+    icon:'⚠️', title:'¿Borrar TODOS los bancos?',
+    msg:`Se eliminarán las preguntas de <strong>todos los documentos</strong>.<br><br>La próxima vez que abras cada cuestionario se regenerarán con el nuevo formato (incluye referencia de artículo).`,
+    okLabel:'Borrar todo',
+    onOk: async()=>{
+      await db.ref(`${DB_PATH}/cuestionarios`).remove();
+      showToast('Todos los bancos eliminados.','green');
       loadBancoPreguntas();
     }
   });
