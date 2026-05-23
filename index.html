@@ -283,6 +283,8 @@ footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
 .typing span:nth-child(2){animation-delay:.15s;}
 .typing span:nth-child(3){animation-delay:.3s;}
 @keyframes typing{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);opacity:.5;}}
+.stream-cursor{display:inline-block;width:2px;height:14px;background:var(--blue-l);margin-left:2px;vertical-align:text-bottom;animation:blink-cur .6s step-end infinite;}
+@keyframes blink-cur{0%,100%{opacity:1;}50%{opacity:0;}}
 
 /* HISTORY */
 .hist-item{background:#fff;border-radius:var(--radius-s);padding:18px;border:1px solid var(--border);margin-bottom:12px;transition:var(--tr);}
@@ -1989,17 +1991,12 @@ async function sendQuery(){
   const btn = document.getElementById('btn-send');
   btn.disabled=true;
 
-  // Mostrar pregunta del usuario
   appendMessage('user', pregunta);
-
-  // Mostrar typing
-  const typingId = appendTyping();
+  const streamDiv = appendStreamingMsg();
 
   try {
-    // Cargar texto de los PDFs seleccionados
     const textoContexto = await buildContext(selected);
 
-    // Llamar Claude API
     const resp = await fetch('https://biblioia-proxy.maahantartico.workers.dev/', {
       method: 'POST',
       headers: {
@@ -2008,8 +2005,9 @@ async function sendQuery(){
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
+        model: 'claude-sonnet-4-6',
         max_tokens: 2000,
+        stream: true,
         system: SYSTEM_PROMPT,
         messages: [{
           role: 'user',
@@ -2017,30 +2015,51 @@ async function sendQuery(){
         }]
       })
     });
+
     if(!resp.ok){
+      if(resp.status === 429) throw new Error('RATE_LIMIT');
       let errMsg = 'Error al conectar con la IA.';
       try { const errData = await resp.json(); errMsg = errData.error?.message || errMsg; } catch(_){}
-      if(resp.status === 429) throw new Error('RATE_LIMIT');
       throw new Error(errMsg);
     }
-    const data = await resp.json();
-    const respuesta = data.content[0].text;
 
-    removeTyping(typingId);
-    appendMessage('ai', respuesta);
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let fullText = '';
+    let buffer = '';
 
-    // Guardar en historial
+    while(true){
+      const {done, value} = await reader.read();
+      if(done) break;
+      buffer += decoder.decode(value, {stream: true});
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      for(const line of lines){
+        if(!line.startsWith('data: ')) continue;
+        const raw = line.slice(6).trim();
+        if(raw === '[DONE]') continue;
+        try{
+          const evt = JSON.parse(raw);
+          if(evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta'){
+            fullText += evt.delta.text;
+            updateStreamingMsg(streamDiv, fullText);
+          }
+        } catch(_){}
+      }
+    }
+
+    finalizeStreamingMsg(streamDiv, fullText);
+
     const pdfNames = selected.map(id=>{ const p=allPdfs.find(pp=>pp.id===id); return p?.nombre||id; });
     await db.ref(`${DB_PATH}/consultas/${currentUser.uid}`).push({
-      pregunta, respuesta,
+      pregunta, respuesta: fullText,
       pdfs: pdfNames,
       fecha: new Date().toISOString()
     });
-    // Incrementar contador
     db.ref(`${DB_PATH}/usuarios/${currentUser.uid}/consultas`).transaction(v=>(v||0)+1);
 
-  } catch(e) {
-    removeTyping(typingId);
+  } catch(e){
+    streamDiv.remove();
     if(e.message === 'RATE_LIMIT'){
       appendMessage('ai', '⏳ Límite de uso de la API alcanzado. Espera 1 minuto e intenta de nuevo.\n\nSi ocurre con frecuencia, selecciona menos documentos a la vez.');
     } else {
@@ -2122,6 +2141,24 @@ function appendTyping(){
   return id;
 }
 function removeTyping(id){ const el=document.getElementById(id); if(el) el.remove(); }
+
+function appendStreamingMsg(){
+  const messages = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'msg msg-ai';
+  div.innerHTML = '<span class="stream-cursor"></span>';
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+  return div;
+}
+function updateStreamingMsg(div, text){
+  const messages = document.getElementById('chat-messages');
+  div.innerHTML = escHtml(text).replace(/\n/g,'<br>') + '<span class="stream-cursor"></span>';
+  messages.scrollTop = messages.scrollHeight;
+}
+function finalizeStreamingMsg(div, text){
+  div.innerHTML = formatAIResponse(text);
+}
 
 // ══ HISTORIAL ═════════════════════════════════════════════
 function loadHistorial(){
