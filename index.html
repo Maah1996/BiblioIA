@@ -2809,8 +2809,9 @@ async function mostrarPaginaRevision(idx){
 
     // Try to locate the citation in the page text and show a focused context window
     // around it (±400 chars) with highlight. Fallback: full page text.
+    // Try to locate the citation in the page text and show a focused context window
+    // (±400 chars). No yellow highlight — unreliable due to paraphrasing differences.
     let html;
-    const MARK_O = `<mark style="background:#fef08a;padding:3px 5px;border-radius:3px;font-weight:700;">`;
     let citaEncontrada = false;
 
     if(q.fragmento && q.fragmento.trim().length > 5){
@@ -2827,11 +2828,8 @@ async function mostrarPaginaRevision(idx){
             const CTX = 400;
             const start = Math.max(0, m.index - CTX);
             const end = Math.min(textoRaw.length, m.index + m[0].length + CTX);
-            const pre  = (start > 0 ? '…' : '') + textoRaw.slice(start, m.index);
-            const post = textoRaw.slice(m.index + m[0].length, end) + (end < textoRaw.length ? '…' : '');
-            html = fmtEsc(pre)
-                 + MARK_O + escHtml(m[0]).replace(/\n/g,' ') + '</mark>'
-                 + fmtEsc(post);
+            const excerpt = (start > 0 ? '…' : '') + textoRaw.slice(start, end) + (end < textoRaw.length ? '…' : '');
+            html = fmtEsc(excerpt);
             citaEncontrada = true;
           }
         } catch(rxErr){}
