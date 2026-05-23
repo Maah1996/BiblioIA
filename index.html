@@ -2017,7 +2017,12 @@ async function sendQuery(){
         }]
       })
     });
-    if(!resp.ok){ const err=await resp.json(); throw new Error(err.error?.message||'Error API'); }
+    if(!resp.ok){
+      let errMsg = 'Error al conectar con la IA.';
+      try { const errData = await resp.json(); errMsg = errData.error?.message || errMsg; } catch(_){}
+      if(resp.status === 429) throw new Error('RATE_LIMIT');
+      throw new Error(errMsg);
+    }
     const data = await resp.json();
     const respuesta = data.content[0].text;
 
@@ -2036,28 +2041,35 @@ async function sendQuery(){
 
   } catch(e) {
     removeTyping(typingId);
-    const keyStatus = CLAUDE_API_KEY ? `Key cargada (${CLAUDE_API_KEY.slice(0,20)}...)` : 'Key VACÍA';
-    appendMessage('ai', `⚠️ Error: ${e.message}\n\nDetalle: ${e.name}\n${keyStatus}\n\nSi ves "Failed to fetch", abre F12 → Consola y busca el error CORS.`);
+    if(e.message === 'RATE_LIMIT'){
+      appendMessage('ai', '⏳ Límite de uso de la API alcanzado. Espera 1 minuto e intenta de nuevo.\n\nSi ocurre con frecuencia, selecciona menos documentos a la vez.');
+    } else {
+      appendMessage('ai', `⚠️ Error al consultar la IA: ${e.message}`);
+    }
   }
   btn.disabled=false;
 }
 
 async function buildContext(pdfIds){
+  const MAX_TOTAL = 12000;
   let ctx = '';
+  const perPdf = Math.floor(MAX_TOTAL / Math.max(pdfIds.length, 1));
   for(const id of pdfIds){
     const pdf = allPdfs.find(p=>p.id===id);
     if(!pdf) continue;
-    ctx += `\n══════════════════════════════\n`;
-    ctx += `DOCUMENTO: "${pdf.nombre}"\n`;
-    ctx += `Categoría: ${pdf.categoria||'—'} | Total páginas: ${pdf.paginas||'?'}\n`;
-    ctx += `══════════════════════════════\n`;
-    // Cargar texto desde Firebase
+    let block = `\n══════════════════════════════\n`;
+    block += `DOCUMENTO: "${pdf.nombre}"\n`;
+    block += `Categoría: ${pdf.categoria||'—'} | Total páginas: ${pdf.paginas||'?'}\n`;
+    block += `══════════════════════════════\n`;
     const snap = await db.ref(`${DB_PATH}/pdfs/${id}/texto`).once('value');
     const textos = snap.val()||{};
+    let pdfText = '';
     Object.entries(textos).forEach(([idx,txt])=>{
-      const pageNum = parseInt(idx)+1;
-      ctx += `[PÁGINA ${pageNum}]\n${txt}\n\n`;
+      pdfText += `[PÁGINA ${parseInt(idx)+1}]\n${txt}\n\n`;
     });
+    block += pdfText.slice(0, perPdf);
+    if(pdfText.length > perPdf) block += '\n[... texto recortado para optimizar uso de API ...]\n';
+    ctx += block;
   }
   return ctx;
 }
@@ -2282,7 +2294,11 @@ async function loadCuestionario(){
 
   } catch(e){
     console.error('Quiz error:',e);
-    mostrarErrorQuiz('Error al generar el cuestionario', e.message||'Revisa la consola para más detalles.');
+    if(e.message === 'RATE_LIMIT'){
+      mostrarErrorQuiz('Límite de uso alcanzado', 'La API está temporalmente saturada. Espera 1 minuto e intenta de nuevo.');
+    } else {
+      mostrarErrorQuiz('Error al generar el cuestionario', e.message||'Revisa la consola para más detalles.');
+    }
   }
 }
 
@@ -2334,7 +2350,7 @@ async function generarNuevasPreguntas(pdfId, yaExisten){
 REGLAS: exactamente 10 preguntas, "correcta" es a/b/c/d, solo info del documento, no repetir las ${yaExisten} existentes, alternativas cortas (máx 15 palabras).
 
 DOCUMENTO:
-${ctx.slice(0,12000)}`;
+${ctx.slice(0,8000)}`;
 
   // Timeout de 90 segundos
   const controller = new AbortController();
@@ -2356,6 +2372,7 @@ ${ctx.slice(0,12000)}`;
   }
 
   if(!resp.ok){
+    if(resp.status === 429) throw new Error('RATE_LIMIT');
     let errMsg = `Error HTTP ${resp.status}`;
     try { const errData = await resp.json(); errMsg = errData.error?.message || errMsg; } catch(_){}
     throw new Error(errMsg);
