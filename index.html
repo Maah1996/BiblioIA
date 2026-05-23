@@ -2828,8 +2828,11 @@ async function mostrarPaginaRevision(idx){
             const CTX = 400;
             const start = Math.max(0, m.index - CTX);
             const end = Math.min(textoRaw.length, m.index + m[0].length + CTX);
-            const excerpt = (start > 0 ? '…' : '') + textoRaw.slice(start, end) + (end < textoRaw.length ? '…' : '');
-            html = fmtEsc(excerpt);
+            const pre  = (start > 0 ? '…' : '') + textoRaw.slice(start, m.index);
+            const post = textoRaw.slice(m.index + m[0].length, end) + (end < textoRaw.length ? '…' : '');
+            html = fmtEsc(pre)
+                 + `<strong style="color:var(--navy);font-size:14px;">${escHtml(m[0]).replace(/\n/g,' ')}</strong>`
+                 + fmtEsc(post);
             citaEncontrada = true;
           }
         } catch(rxErr){}
