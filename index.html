@@ -2274,8 +2274,8 @@ function abrirCuestionario(pdfId){
   goTo('cuestionario');
 
   const paginas = parseInt(pdf.paginas)||0;
-  const target = paginas <= 50 ? 50 : paginas <= 100 ? 100 : 150;
-  const tiempoMin = target === 50 ? '2-3' : target === 100 ? '4-6' : '7-10';
+  const target = paginas <= 50 ? 80 : paginas <= 100 ? 150 : 200;
+  const tiempoMin = target === 80 ? '3-4' : target === 150 ? '6-8' : '10-14';
 
   document.getElementById('quiz-recommend').style.display='none';
   document.getElementById('quiz-loading').style.display='none';
