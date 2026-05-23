@@ -2404,8 +2404,17 @@ async function loadCuestionario(targetSize){
             banco.push({...q, id: ref.key});
           }
         }
+        // Pausa entre lotes para no superar el rate limit
+        if(banco.length < targetSize){
+          setQuizLoadBar(Math.min(90, 20 + (banco.length/targetSize)*70), `Banco: ${banco.length}/${targetSize} — esperando...`);
+          await new Promise(r => setTimeout(r, 4000));
+        }
       } catch(loteErr){
-        if(loteErr.message === 'RATE_LIMIT') throw loteErr;
+        if(loteErr.message === 'RATE_LIMIT'){
+          setQuizLoadBar(Math.min(90, 20 + (banco.length/targetSize)*70), `Límite alcanzado — esperando 60s (${banco.length}/${targetSize})...`);
+          await new Promise(r => setTimeout(r, 60000));
+          continue;
+        }
         if(banco.length >= 20) break;
         throw loteErr;
       }
