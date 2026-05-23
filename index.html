@@ -2807,7 +2807,37 @@ async function mostrarPaginaRevision(idx){
       return escHtml(t).replace(/\n\n/g,'<br><br>').replace(/\n/g,'<br>');
     }
 
-    const html = fmtEsc(textoRaw);
+    // Try to locate the citation in the page text and show a focused context window
+    // around it (±400 chars) with highlight. Fallback: full page text.
+    let html;
+    const MARK_O = `<mark style="background:#fef08a;padding:3px 5px;border-radius:3px;font-weight:700;">`;
+    let citaEncontrada = false;
+
+    if(q.fragmento && q.fragmento.trim().length > 5){
+      const words = q.fragmento.trim().split(/\s+/).slice(0, 8);
+      if(words.length >= 2){
+        try{
+          const rx = new RegExp(
+            words.map(w=>w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'))
+                 .join('[^a-zA-Z0-9áéíóúüñÁÉÍÓÚÜÑ]+'),
+            'i'
+          );
+          const m = rx.exec(textoRaw);
+          if(m){
+            const CTX = 400;
+            const start = Math.max(0, m.index - CTX);
+            const end = Math.min(textoRaw.length, m.index + m[0].length + CTX);
+            const pre  = (start > 0 ? '…' : '') + textoRaw.slice(start, m.index);
+            const post = textoRaw.slice(m.index + m[0].length, end) + (end < textoRaw.length ? '…' : '');
+            html = fmtEsc(pre)
+                 + MARK_O + escHtml(m[0]).replace(/\n/g,' ') + '</mark>'
+                 + fmtEsc(post);
+            citaEncontrada = true;
+          }
+        } catch(rxErr){}
+      }
+    }
+    if(!citaEncontrada) html = fmtEsc(textoRaw);
 
     const pdf = allPdfs.find(p=>p.id===currentQuizPdfId);
     const linkPdf = pdf?.urlPdf
