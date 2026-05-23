@@ -990,6 +990,13 @@ footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
         </div>
         <div id="quiz-form" style="display:none;max-width:780px;">
           <div class="quiz-sticky-top">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:10px 4px;margin-bottom:8px;border-bottom:1px solid var(--border);">
+              <button onclick="goTo('biblioteca-user')" style="display:flex;align-items:center;gap:6px;padding:7px 14px;background:none;border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:600;color:var(--text-g);cursor:pointer;transition:var(--tr);" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='none'">← Volver</button>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button onclick="repetirCuestionario()" style="display:flex;align-items:center;gap:6px;padding:7px 14px;background:none;border:1px solid var(--blue-l);border-radius:8px;font-size:12px;font-weight:600;color:var(--blue-l);cursor:pointer;transition:var(--tr);" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='none'">🔄 Contestar de nuevo</button>
+                <button onclick="reiniciarCuestionario()" style="display:flex;align-items:center;gap:6px;padding:7px 14px;background:var(--blue-l);border:none;border-radius:8px;font-size:12px;font-weight:600;color:#fff;cursor:pointer;transition:var(--tr);" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">🆕 Nuevo cuestionario</button>
+              </div>
+            </div>
             <div class="quiz-header">
               <div>
                 <div style="font-size:11px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Cuestionario</div>
