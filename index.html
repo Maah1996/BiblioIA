@@ -2505,13 +2505,14 @@ async function generarNuevasPreguntas(pdfId, yaExisten, textSection){
   if(!CLAUDE_API_KEY) throw new Error('No hay API Key configurada. Ve a Ajustes y guarda la clave.');
 
   const prompt = `Genera exactamente 10 preguntas de selección múltiple. Responde SOLO con un array JSON válido, sin texto extra ni markdown:
-[{"pregunta":"...?","alternativas":{"a":"...","b":"...","c":"...","d":"..."},"correcta":"b","pagina":1,"fragmento":"cita breve del doc"}]
+[{"pregunta":"...?","alternativas":{"a":"...","b":"...","c":"...","d":"..."},"correcta":"b","pagina":1,"fragmento":"cita breve del doc","referencia":"Artículo 5° / N° 3 / Párrafo 2 (la sección exacta donde está la respuesta)"}]
 
 REGLAS GENERALES:
 - Exactamente 10 preguntas, "correcta" es a/b/c/d
 - Solo usa información del documento
 - No repitas las ${yaExisten} preguntas ya existentes
 - Alternativas cortas (máx 12 palabras cada una)
+- "referencia": indica el artículo, número, párrafo o sección específica donde está la respuesta (ej: "Artículo 184", "N° 3", "Título II", "Párrafo 1"). Si no hay referencia explícita, pon null
 
 SOBRE EL CONTENIDO DE LAS PREGUNTAS (muy importante):
 - Pregunta SOLO sobre conceptos importantes, clave y representativos de la materia
@@ -2796,12 +2797,18 @@ async function mostrarPaginaRevision(idx){
       ? `<a href="${pdf.urlPdf}" target="_blank" style="font-size:12px;color:var(--blue-l);font-weight:600;">🔗 Abrir PDF completo ↗</a>`
       : '';
 
+    const refHtml = q.referencia
+      ? `<div style="font-size:11px;font-weight:700;color:#1d4ed8;background:#dbeafe;display:inline-block;padding:2px 8px;border-radius:4px;margin-bottom:6px;">📍 ${escHtml(q.referencia)}</div>`
+      : '';
     const citaHtml = q.fragmento && q.fragmento.trim()
       ? `<div style="background:#eff6ff;border-left:4px solid #3b82f6;border-radius:0 8px 8px 0;padding:10px 14px;margin-bottom:12px;">
-           <div style="font-size:10px;font-weight:700;color:#93c5fd;letter-spacing:.8px;margin-bottom:5px;">📌 CITA DEL DOCUMENTO</div>
+           <div style="font-size:10px;font-weight:700;color:#93c5fd;letter-spacing:.8px;margin-bottom:6px;">📌 CITA DEL DOCUMENTO</div>
+           ${refHtml}
            <div style="font-size:12px;font-style:italic;color:#1e40af;line-height:1.6;">"${escHtml(q.fragmento.trim())}"</div>
          </div>`
-      : '';
+      : refHtml
+        ? `<div style="background:#eff6ff;border-left:4px solid #3b82f6;border-radius:0 8px 8px 0;padding:10px 14px;margin-bottom:12px;">${refHtml}</div>`
+        : '';
 
     panel.innerHTML=`
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border);">
