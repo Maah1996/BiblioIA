@@ -2789,34 +2789,18 @@ async function mostrarPaginaRevision(idx){
       return escHtml(t).replace(/\n\n/g,'<br><br>').replace(/\n/g,'<br>');
     }
 
-    let html;
-    const MARK_O = `<mark style="background:#fef08a;padding:2px 5px;border-radius:3px;font-weight:600;">`;
-
-    // Fuzzy highlight: words joined by [^alphanumeric]+ so commas, newlines, etc. between words still match
-    // e.g. fragment "Trabajo las" matches text "Trabajo, las" or "Trabajo\nlas"
-    if(q.fragmento && q.fragmento.trim().length > 5){
-      const words = q.fragmento.trim().split(/\s+/).slice(0, 8);
-      if(words.length >= 2){
-        try{
-          const rx = new RegExp(
-            words.map(w=>w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'))
-                 .join('[^a-zA-Z0-9áéíóúüñÁÉÍÓÚÜÑ]+'),
-            'i'
-          );
-          const m = rx.exec(textoRaw);
-          if(m){
-            html = fmtEsc(textoRaw.slice(0, m.index))
-                 + MARK_O + escHtml(m[0]).replace(/\n/g,' ') + '</mark>'
-                 + fmtEsc(textoRaw.slice(m.index + m[0].length));
-          }
-        } catch(rxErr){ /* regex inválida, continuar sin highlight */ }
-      }
-    }
-    if(!html) html = fmtEsc(textoRaw);
+    const html = fmtEsc(textoRaw);
 
     const pdf = allPdfs.find(p=>p.id===currentQuizPdfId);
     const linkPdf = pdf?.urlPdf
       ? `<a href="${pdf.urlPdf}" target="_blank" style="font-size:12px;color:var(--blue-l);font-weight:600;">🔗 Abrir PDF completo ↗</a>`
+      : '';
+
+    const citaHtml = q.fragmento && q.fragmento.trim()
+      ? `<div style="background:#eff6ff;border-left:4px solid #3b82f6;border-radius:0 8px 8px 0;padding:10px 14px;margin-bottom:12px;">
+           <div style="font-size:10px;font-weight:700;color:#93c5fd;letter-spacing:.8px;margin-bottom:5px;">📌 CITA DEL DOCUMENTO</div>
+           <div style="font-size:12px;font-style:italic;color:#1e40af;line-height:1.6;">"${escHtml(q.fragmento.trim())}"</div>
+         </div>`
       : '';
 
     panel.innerHTML=`
@@ -2824,9 +2808,10 @@ async function mostrarPaginaRevision(idx){
         <span style="font-size:14px;font-weight:700;color:var(--navy);">📄 Página ${q.pagina||'?'}</span>
         ${linkPdf}
       </div>
-      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#92400e;">
+      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:#92400e;">
         <strong>Respuesta correcta:</strong> ${escHtml(q.alternativas[q.correcta]||'')}
       </div>
+      ${citaHtml}
       <div style="font-size:13px;line-height:1.9;color:var(--text);">${html}</div>`;
   } catch(e){
     panel.innerHTML='<div style="padding:20px;color:var(--red);">Error al cargar la página.</div>';
