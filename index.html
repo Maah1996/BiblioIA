@@ -2382,8 +2382,10 @@ async function loadCuestionario(targetSize){
       }
     }
 
-    // Generar en lotes de 10, rotando secciones del documento
-    const SECTION_SIZE = 8000;
+    // Dividir el documento en secciones iguales — una por lote
+    // Así las preguntas quedan balanceadas en todo el documento
+    const totalBatches = Math.ceil(targetSize / 10);
+    const SECTION_SIZE = Math.max(4000, Math.ceil(fullCtx.length / totalBatches));
     const totalSections = Math.max(1, Math.ceil(fullCtx.length / SECTION_SIZE));
     let sectionIdx = 0;
 
@@ -2492,7 +2494,7 @@ REGLAS PARA LAS ALTERNATIVAS INCORRECTAS (crítico):
 - Si la respuesta correcta es un número/artículo/norma, las incorrectas deben ser otros números/artículos/normas del mismo documento
 - El estudiante debe conocer bien el material para identificar la correcta
 
-DOCUMENTO:
+SECCIÓN DEL DOCUMENTO (genera preguntas SOLO sobre este fragmento):
 ${textSection}`;
 
   const controller = new AbortController();
