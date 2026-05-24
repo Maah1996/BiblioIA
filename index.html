@@ -1876,8 +1876,21 @@ function _materiaCard(m, esHijo){
       </div>
     </div>
     <div style="display:flex;gap:6px;flex-shrink:0;">
+      <button class="btn-sm btn-blue" onclick="editarMateria('${m.id}')" style="padding:5px 10px;font-size:11px;">✏️</button>
       <button class="btn-sm ${activo?'btn-gray':'btn-green'}" onclick="toggleMateria('${m.id}',${activo})" style="padding:5px 10px;font-size:11px;">${activo?'⏸ Ocultar':'▶ Activar'}</button>
       <button class="btn-sm btn-red" onclick="eliminarMateria('${m.id}','${m.nombre}',${pdfCount},'${m.parentId||''}')" style="padding:5px 10px;font-size:11px;">✕</button>
+    </div>
+  </div>
+  <div id="edit-materia-${m.id}" style="display:none;background:#f0f6ff;border:1.5px solid var(--blue-l);border-radius:var(--radius);padding:12px 16px;margin-top:4px;${esHijo?'margin-left:24px;':''}">
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <select id="edit-icono-${m.id}" style="font-size:20px;padding:6px 8px;border:1.5px solid var(--border);border-radius:8px;outline:none;">
+        ${['📚','📐','🔬','🌍','💻','🎨','🏛️','📝','🔧','⚡','🌱','🎵','📁','📂','🏥','⚖️','🔐','📊'].map(e=>`<option value="${e}" ${m.icono===e?'selected':''}>${e}</option>`).join('')}
+      </select>
+      <input id="edit-nombre-${m.id}" type="text" value="${m.nombre.replace(/"/g,'&quot;')}"
+        style="flex:1;min-width:160px;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-weight:600;outline:none;"
+        onkeydown="if(event.key==='Enter') guardarEdicionMateria('${m.id}')">
+      <button class="btn-sm btn-blue" onclick="guardarEdicionMateria('${m.id}')" style="padding:8px 16px;">💾 Guardar</button>
+      <button class="btn-sm btn-gray" onclick="document.getElementById('edit-materia-${m.id}').style.display='none'" style="padding:8px 12px;">✕</button>
     </div>
   </div>`;
 }
@@ -1933,6 +1946,42 @@ async function eliminarMateria(id, nombre, pdfCount, parentId){
       showToast('Carpeta eliminada.','green');
     }
   });
+}
+
+function editarMateria(id){
+  // Cerrar cualquier otro editor abierto
+  document.querySelectorAll('[id^="edit-materia-"]').forEach(el=>el.style.display='none');
+  const panel = document.getElementById(`edit-materia-${id}`);
+  if(panel) panel.style.display='';
+  const inp = document.getElementById(`edit-nombre-${id}`);
+  if(inp){ inp.focus(); inp.select(); }
+}
+
+async function guardarEdicionMateria(id){
+  const nuevoNombre = document.getElementById(`edit-nombre-${id}`)?.value.trim();
+  const nuevoIcono  = document.getElementById(`edit-icono-${id}`)?.value;
+  if(!nuevoNombre){ showToast('El nombre no puede estar vacío.','red'); return; }
+  const m = allMaterias.find(x=>x.id===id);
+  if(!m){ return; }
+  const nombreViejo = m.nombre;
+
+  const updates = {};
+  updates[`${DB_PATH}/materias/${id}/nombre`] = nuevoNombre;
+  updates[`${DB_PATH}/materias/${id}/icono`]  = nuevoIcono;
+
+  // Si cambió el nombre, actualizar también los PDFs y audios que usaban el nombre viejo como categoría
+  if(nuevoNombre !== nombreViejo){
+    allPdfs.filter(p=>p.categoria===nombreViejo).forEach(p=>{
+      updates[`${DB_PATH}/pdfs/${p.id}/categoria`] = nuevoNombre;
+    });
+    allAudios.filter(a=>a.categoria===nombreViejo).forEach(a=>{
+      updates[`${DB_PATH}/audios/${a.id}/categoria`] = nuevoNombre;
+    });
+  }
+
+  await db.ref().update(updates);
+  showToast(`Carpeta actualizada ✓`, 'green');
+  document.getElementById(`edit-materia-${id}`).style.display='none';
 }
 
 async function toggleMateria(id, activo){
