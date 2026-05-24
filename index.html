@@ -1958,30 +1958,35 @@ function editarMateria(id){
 }
 
 async function guardarEdicionMateria(id){
-  const nuevoNombre = document.getElementById(`edit-nombre-${id}`)?.value.trim();
-  const nuevoIcono  = document.getElementById(`edit-icono-${id}`)?.value;
+  const inputNombre = document.getElementById('edit-nombre-' + id);
+  const inputIcono  = document.getElementById('edit-icono-'  + id);
+  const nuevoNombre = inputNombre ? inputNombre.value.trim() : '';
+  const nuevoIcono  = inputIcono  ? inputIcono.value         : '';
   if(!nuevoNombre){ showToast('El nombre no puede estar vacío.','red'); return; }
-  const m = allMaterias.find(x=>x.id===id);
-  if(!m){ return; }
-  const nombreViejo = m.nombre;
+  try{
+    // Leer nombre actual desde Firebase (no depende de allMaterias en memoria)
+    const snapNombre = await db.ref(`${DB_PATH}/materias/${id}/nombre`).once('value');
+    const nombreViejo = snapNombre.val() || '';
 
-  const updates = {};
-  updates[`${DB_PATH}/materias/${id}/nombre`] = nuevoNombre;
-  updates[`${DB_PATH}/materias/${id}/icono`]  = nuevoIcono;
+    const updates = {};
+    updates[`${DB_PATH}/materias/${id}/nombre`] = nuevoNombre;
+    if(nuevoIcono) updates[`${DB_PATH}/materias/${id}/icono`] = nuevoIcono;
 
-  // Si cambió el nombre, actualizar también los PDFs y audios que usaban el nombre viejo como categoría
-  if(nuevoNombre !== nombreViejo){
-    allPdfs.filter(p=>p.categoria===nombreViejo).forEach(p=>{
-      updates[`${DB_PATH}/pdfs/${p.id}/categoria`] = nuevoNombre;
-    });
-    allAudios.filter(a=>a.categoria===nombreViejo).forEach(a=>{
-      updates[`${DB_PATH}/audios/${a.id}/categoria`] = nuevoNombre;
-    });
+    // Reasignar PDFs y audios si cambió el nombre
+    if(nombreViejo && nuevoNombre !== nombreViejo){
+      allPdfs.filter(p=>p.categoria===nombreViejo)
+             .forEach(p=>{ updates[`${DB_PATH}/pdfs/${p.id}/categoria`]=nuevoNombre; });
+      allAudios.filter(a=>a.categoria===nombreViejo)
+               .forEach(a=>{ updates[`${DB_PATH}/audios/${a.id}/categoria`]=nuevoNombre; });
+    }
+
+    await db.ref().update(updates);
+    showToast('Carpeta "'+nuevoNombre+'" guardada ✓','green');
+    const panel = document.getElementById('edit-materia-' + id);
+    if(panel) panel.style.display='none';
+  } catch(e){
+    showToast('Error al guardar: '+e.message,'red');
   }
-
-  await db.ref().update(updates);
-  showToast(`Carpeta actualizada ✓`, 'green');
-  document.getElementById(`edit-materia-${id}`).style.display='none';
 }
 
 async function toggleMateria(id, activo){
