@@ -822,12 +822,13 @@ footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
         <div class="card" style="max-width:680px;margin-bottom:24px;">
           <div class="card-title">➕ Agregar multimedia</div>
 
-          <!-- Tipo: Audio / Video -->
+          <!-- Tipo: Audio / Video / YouTube -->
           <div class="field-group" style="margin-bottom:14px;">
             <label>Tipo de contenido</label>
             <div class="tipo-toggle">
               <button class="tipo-btn active" id="tipo-btn-audio" onclick="setTipo('audio')">🎵 Audio</button>
-              <button class="tipo-btn" id="tipo-btn-video" onclick="setTipo('video')">🎬 Video</button>
+              <button class="tipo-btn" id="tipo-btn-video" onclick="setTipo('video')">🎬 Video (link)</button>
+              <button class="tipo-btn" id="tipo-btn-youtube" onclick="setTipo('youtube')">▶️ YouTube</button>
             </div>
           </div>
 
@@ -845,35 +846,11 @@ footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
             </div>
           </div>
 
-          <!-- Fuente: Archivo / Link / YouTube -->
-          <div class="field-group" style="margin-bottom:14px;">
-            <label>Fuente</label>
-            <div class="fuente-toggle" id="fuente-toggle">
-              <button class="fuente-btn active" id="fuente-btn-archivo" onclick="setFuente('archivo')">📁 Subir archivo</button>
-              <button class="fuente-btn" id="fuente-btn-link" onclick="setFuente('link')">🔗 Link directo</button>
-              <button class="fuente-btn" id="fuente-btn-youtube" onclick="setFuente('youtube')" style="display:none;">▶️ YouTube</button>
-            </div>
-          </div>
-
-          <!-- Input archivo -->
-          <div id="fuente-archivo-wrap" class="field-group">
-            <label id="archivo-label">Archivo de audio (.mp3 .m4a .wav)</label>
-            <input type="file" id="audio-file" accept="audio/*,video/*" style="padding:8px;border:1.5px solid var(--border);border-radius:8px;width:100%;font-size:13px;">
-            <div class="media-upload-bar-wrap" id="upload-bar-wrap"><div class="media-upload-bar" id="upload-bar"></div></div>
-            <div id="upload-status" style="font-size:11px;color:var(--text-g);margin-top:4px;"></div>
-          </div>
-
-          <!-- Input link -->
-          <div id="fuente-link-wrap" class="field-group" style="display:none;">
-            <label>URL del archivo (link directo .mp3, .mp4, OneDrive...)</label>
+          <!-- URL dinámica según tipo -->
+          <div class="field-group" id="url-wrap">
+            <label id="url-label">Link del audio (OneDrive, Google Drive, .mp3 directo)</label>
             <input type="url" id="audio-url" placeholder="https://...">
-          </div>
-
-          <!-- Input YouTube -->
-          <div id="fuente-youtube-wrap" class="field-group" style="display:none;">
-            <label>Link de YouTube</label>
-            <input type="url" id="audio-youtube" placeholder="https://www.youtube.com/watch?v=...">
-            <div style="font-size:11px;color:var(--text-g);margin-top:4px;">💡 Pega el link normal de YouTube. El video se incrustará directamente.</div>
+            <div id="url-hint" style="font-size:11px;color:var(--text-g);margin-top:4px;">💡 Funciona con OneDrive, Google Drive o cualquier link directo a .mp3 .m4a .wav</div>
           </div>
 
           <!-- Descripción -->
@@ -1840,30 +1817,23 @@ function loadAdminAudios(){
 
 // ── UI toggles multimedia form ─────────────────────────────
 let _mediaTipo = 'audio';
-let _mediaFuente = 'archivo';
 
 function setTipo(t){
   _mediaTipo = t;
-  document.getElementById('tipo-btn-audio').classList.toggle('active', t==='audio');
-  document.getElementById('tipo-btn-video').classList.toggle('active', t==='video');
-  // YouTube solo disponible para video
-  document.getElementById('fuente-btn-youtube').style.display = t==='video' ? '' : 'none';
-  if(t==='audio' && _mediaFuente==='youtube') setFuente('archivo');
-  // Actualizar label archivo
-  document.getElementById('archivo-label').textContent =
-    t==='audio' ? 'Archivo de audio (.mp3 .m4a .wav)' : 'Archivo de video (.mp4 .webm .mov)';
-  document.getElementById('audio-file').accept = t==='audio' ? 'audio/*' : 'video/*';
-  document.getElementById('btn-subir-media').textContent = t==='audio' ? '🎵 Agregar audio' : '🎬 Agregar video';
-}
-
-function setFuente(f){
-  _mediaFuente = f;
-  ['archivo','link','youtube'].forEach(x=>{
-    const btn = document.getElementById(`fuente-btn-${x}`);
-    const wrap = document.getElementById(`fuente-${x}-wrap`);
-    if(btn) btn.classList.toggle('active', x===f);
-    if(wrap) wrap.style.display = x===f ? '' : 'none';
+  ['audio','video','youtube'].forEach(x=>{
+    const btn = document.getElementById(`tipo-btn-${x}`);
+    if(btn) btn.classList.toggle('active', x===t);
   });
+  const labels = {
+    audio:   { label:'Link del audio (OneDrive, Google Drive, .mp3 directo)', hint:'💡 Funciona con OneDrive, Google Drive o cualquier link directo a .mp3 .m4a .wav', btn:'🎵 Agregar audio', ph:'https://...' },
+    video:   { label:'Link del video (.mp4 directo, OneDrive, Google Drive)', hint:'💡 Pega un link directo a archivo de video. Para YouTube usa la opción YouTube.', btn:'🎬 Agregar video', ph:'https://...' },
+    youtube: { label:'Link de YouTube', hint:'💡 Pega el link normal de YouTube (youtube.com/watch?v=...). Se incrustará automáticamente.', btn:'▶️ Agregar YouTube', ph:'https://www.youtube.com/watch?v=...' }
+  };
+  const l = labels[t];
+  document.getElementById('url-label').textContent = l.label;
+  document.getElementById('url-hint').textContent = l.hint;
+  document.getElementById('btn-subir-media').textContent = l.btn;
+  document.getElementById('audio-url').placeholder = l.ph;
 }
 
 function _ytVideoId(url){
@@ -1875,80 +1845,35 @@ async function subirMedia(){
   const nombre = document.getElementById('audio-nombre').value.trim();
   const cat    = document.getElementById('audio-categoria').value;
   const desc   = document.getElementById('audio-desc').value.trim();
+  const rawUrl = document.getElementById('audio-url').value.trim();
   if(!nombre){ showToast('Escribe el nombre.','red'); return; }
   if(!cat){ showToast('Selecciona una materia.','red'); return; }
+  if(!rawUrl){ showToast('Pega la URL.','red'); return; }
+
+  let urlMedia = rawUrl, tipo = _mediaTipo;
+
+  if(tipo === 'youtube'){
+    const vid = _ytVideoId(rawUrl);
+    if(!vid){ showToast('Link de YouTube no válido.','red'); return; }
+    urlMedia = `https://www.youtube.com/embed/${vid}`;
+  }
 
   const btn = document.getElementById('btn-subir-media');
   btn.disabled = true;
-
   try{
-    let urlMedia = '', tipo = _mediaTipo;
-
-    if(_mediaFuente === 'youtube'){
-      const ytUrl = document.getElementById('audio-youtube').value.trim();
-      if(!ytUrl){ showToast('Pega el link de YouTube.','red'); btn.disabled=false; return; }
-      const vid = _ytVideoId(ytUrl);
-      if(!vid){ showToast('Link de YouTube no válido.','red'); btn.disabled=false; return; }
-      urlMedia = `https://www.youtube.com/embed/${vid}`;
-      tipo = 'youtube';
-
-    } else if(_mediaFuente === 'link'){
-      urlMedia = document.getElementById('audio-url').value.trim();
-      if(!urlMedia){ showToast('Pega la URL del archivo.','red'); btn.disabled=false; return; }
-
-    } else {
-      // Subir archivo a Firebase Storage
-      const file = document.getElementById('audio-file').files[0];
-      if(!file){ showToast('Selecciona un archivo.','red'); btn.disabled=false; return; }
-      const ext = file.name.split('.').pop();
-      const path = `${DB_PATH}/media/${Date.now()}_${nombre.replace(/\s+/g,'_')}.${ext}`;
-      const ref  = storage.ref(path);
-      const task = ref.put(file);
-
-      // Mostrar progreso
-      const barWrap = document.getElementById('upload-bar-wrap');
-      const bar     = document.getElementById('upload-bar');
-      const status  = document.getElementById('upload-status');
-      barWrap.style.display = '';
-
-      urlMedia = await new Promise((res,rej)=>{
-        task.on('state_changed',
-          snap => {
-            const pct = Math.round(snap.bytesTransferred/snap.totalBytes*100);
-            bar.style.width = pct+'%';
-            status.textContent = `Subiendo... ${pct}%`;
-          },
-          err => rej(err),
-          async () => {
-            status.textContent = 'Procesando...';
-            res(await task.snapshot.ref.getDownloadURL());
-          }
-        );
-      });
-
-      barWrap.style.display = 'none';
-      bar.style.width = '0%';
-      status.textContent = '';
-    }
-
     const newRef = db.ref(`${DB_PATH}/audios`).push();
     await newRef.set({ id: newRef.key, nombre, categoria: cat, tipo, urlMedia, descripcion: desc, fechaSubida: new Date().toISOString(), subidoPor: currentUser.email });
-
-    // Reset form
     document.getElementById('audio-nombre').value='';
     document.getElementById('audio-url').value='';
-    document.getElementById('audio-youtube').value='';
-    document.getElementById('audio-file').value='';
     document.getElementById('audio-desc').value='';
     showToast(`"${nombre}" agregado ✓`,'green');
     loadAdminAudios();
   } catch(e){
-    showToast('Error al guardar: '+e.message,'red');
+    showToast('Error: '+e.message,'red');
   }
   btn.disabled = false;
 }
 
-// Alias para compatibilidad con llamadas antiguas
 async function subirAudio(){ return subirMedia(); }
 
 async function deleteAudio(id, nombre){
