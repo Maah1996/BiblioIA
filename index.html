@@ -1542,33 +1542,102 @@ function setProgress(pct, label){
 }
 
 // ══ ADMIN LIBRARY ═════════════════════════════════════════
+let _pdfFiltroCategoria = '';
+
+function _buildMateriaOpts(selected=''){
+  // Opciones jerarquicas: raices primero, luego hijos indentados
+  let opts = '<option value="">— Todas las carpetas —</option>';
+  const raices = allMaterias.filter(m=>!m.parentId);
+  raices.forEach(r=>{
+    opts += `<option value="${r.nombre}" ${selected===r.nombre?'selected':''}>${r.icono||'📁'} ${r.nombre}</option>`;
+    allMaterias.filter(h=>h.parentId===r.id).forEach(h=>{
+      opts += `<option value="${h.nombre}" ${selected===h.nombre?'selected':''}>&nbsp;&nbsp;&nbsp;↳ ${h.icono||'📂'} ${h.nombre}</option>`;
+    });
+  });
+  return opts;
+}
+
 function loadAdminPdfs(){
   const el = document.getElementById('admin-pdf-list');
   const count = document.getElementById('admin-pdf-count');
   if(!allPdfs.length){ el.innerHTML='<div class="empty-state"><div class="es-icon">📂</div><p>No hay documentos.<br>Sube el primer PDF.</p></div>'; count.textContent='0'; return; }
+
+  const pdfs = _pdfFiltroCategoria
+    ? allPdfs.filter(p=>p.categoria===_pdfFiltroCategoria)
+    : allPdfs;
   count.textContent = allPdfs.length;
+
   el.innerHTML=`
+    <!-- Filtro por carpeta -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+      <span style="font-size:12px;font-weight:600;color:var(--text-g);">📂 Filtrar:</span>
+      <select onchange="_pdfFiltroCategoria=this.value;loadAdminPdfs();"
+        style="padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;font-family:inherit;outline:none;min-width:200px;">
+        ${_buildMateriaOpts(_pdfFiltroCategoria)}
+      </select>
+      <span style="font-size:12px;color:var(--text-g);">${pdfs.length} de ${allPdfs.length} docs</span>
+    </div>
     <div class="bulk-bar" id="pdf-bulk-bar">
       <input type="checkbox" class="row-cb" id="cb-all-pdfs" onchange="toggleAllPdfs(this.checked)" title="Seleccionar todos">
       <span style="font-size:13px;font-weight:600;color:var(--blue);" id="pdf-sel-count">0 seleccionados</span>
-      <button class="btn-sm btn-red" onclick="deleteSelectedPdfs()" style="margin-left:auto;padding:7px 18px;">🗑️ Eliminar seleccionados</button>
+      <div style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <select id="bulk-mover-select" style="padding:6px 10px;border:1.5px solid var(--blue-l);border-radius:8px;font-size:12px;font-family:inherit;">
+          ${_buildMateriaOpts()}
+        </select>
+        <button class="btn-sm btn-blue" onclick="moverSeleccionados()" style="padding:7px 14px;">📂 Mover</button>
+        <button class="btn-sm btn-red" onclick="deleteSelectedPdfs()" style="padding:7px 14px;">🗑️ Eliminar</button>
+      </div>
     </div>
     <table class="data-table"><thead><tr>
-      <th style="width:36px;"><input type="checkbox" class="row-cb" id="cb-head-pdfs" onchange="toggleAllPdfs(this.checked)" title="Seleccionar todos"></th>
-      <th>Documento</th><th>Categoría</th><th>Páginas</th><th>URL</th><th>Acciones</th>
+      <th style="width:36px;"><input type="checkbox" class="row-cb" id="cb-head-pdfs" onchange="toggleAllPdfs(this.checked)"></th>
+      <th>Documento</th><th>Carpeta</th><th>Pág.</th><th>Acciones</th>
     </tr></thead><tbody>
-    ${allPdfs.map(p=>`<tr id="row-pdf-${p.id}" onclick="togglePdfRow('${p.id}',event)">
+    ${pdfs.map(p=>`<tr id="row-pdf-${p.id}" onclick="togglePdfRow('${p.id}',event)">
       <td><input type="checkbox" class="row-cb pdf-cb" id="cb-pdf-${p.id}" value="${p.id}" onchange="updatePdfBulkBar()" onclick="event.stopPropagation()"></td>
-      <td><div style="font-weight:600;color:var(--navy);">${p.nombre||'Sin nombre'}</div><div style="font-size:11px;color:var(--text-g);">${p.categoria||''} · ${p.paginas||'?'} pág.</div></td>
-      <td><span class="badge badge-blue">${p.categoria||'—'}</span></td>
-      <td>${p.paginas||'?'} pág.</td>
-      <td style="text-align:center;">${p.urlPdf ? `<span style="color:var(--green);font-size:18px;" title="${p.urlPdf}">🔗</span>` : `<span style="color:var(--border);font-size:18px;">—</span>`}</td>
+      <td>
+        <div style="font-weight:600;color:var(--navy);font-size:13px;">${p.nombre||'Sin nombre'}</div>
+        <div style="font-size:11px;color:var(--text-g);">${p.paginas||'?'} pág.${p.urlPdf?' · <span style="color:var(--green);">🔗 URL</span>':''}</div>
+      </td>
+      <td>
+        <select onchange="event.stopPropagation();moverPdf('${p.id}',this.value,this)"
+          style="padding:5px 8px;border:1.5px solid var(--border);border-radius:7px;font-size:11px;font-family:inherit;outline:none;max-width:200px;">
+          ${_buildMateriaOpts(p.categoria)}
+        </select>
+      </td>
+      <td style="text-align:center;">${p.paginas||'?'}</td>
       <td style="white-space:nowrap;">
         <button class="btn-sm btn-blue" onclick="event.stopPropagation();editarUrlPdf('${p.id}','${(p.nombre||'').replace(/'/g,"\\'")}','${(p.urlPdf||'').replace(/'/g,"\\'")}')">✏️ URL</button>
         <button class="btn-sm btn-red" onclick="event.stopPropagation();deletePdf('${p.id}','${(p.nombre||'').replace(/'/g,"\\'")}')">🗑️</button>
       </td>
     </tr>`).join('')}
     </tbody></table>`;
+}
+
+async function moverPdf(pdfId, nuevaCat, selectEl){
+  if(!nuevaCat){ showToast('Selecciona una carpeta destino.','red'); return; }
+  try{
+    await db.ref(`${DB_PATH}/pdfs/${pdfId}/categoria`).set(nuevaCat);
+    // Actualizar allPdfs local
+    const p = allPdfs.find(x=>x.id===pdfId);
+    if(p) p.categoria = nuevaCat;
+    if(selectEl) selectEl.style.borderColor='var(--green)';
+    setTimeout(()=>{ if(selectEl) selectEl.style.borderColor=''; }, 1200);
+    showToast('Movido a "'+nuevaCat+'" ✓','green');
+    if(_pdfFiltroCategoria) loadAdminPdfs(); // re-filtrar si hay filtro activo
+  } catch(e){ showToast('Error: '+e.message,'red'); }
+}
+
+async function moverSeleccionados(){
+  const ids = [...document.querySelectorAll('.pdf-cb:checked')].map(cb=>cb.value);
+  const cat = document.getElementById('bulk-mover-select')?.value;
+  if(!ids.length){ showToast('Selecciona al menos un documento.','red'); return; }
+  if(!cat){ showToast('Selecciona la carpeta destino.','red'); return; }
+  const updates = {};
+  ids.forEach(id=>{ updates[`${DB_PATH}/pdfs/${id}/categoria`]=cat; });
+  await db.ref().update(updates);
+  ids.forEach(id=>{ const p=allPdfs.find(x=>x.id===id); if(p) p.categoria=cat; });
+  showToast(`${ids.length} doc(s) movidos a "${cat}" ✓`,'green');
+  loadAdminPdfs();
 }
 
 function togglePdfRow(id, e){
