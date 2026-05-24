@@ -765,6 +765,21 @@ footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
             <tbody id="users-tbody"><tr><td colspan="5" style="text-align:center;color:var(--text-g);padding:30px;">Cargando usuarios...</td></tr></tbody>
           </table>
         </div>
+        <!-- Panel acceso carpetas -->
+        <div id="panel-acceso-carpetas" style="display:none;" class="card" style="margin-top:16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div>
+              <div class="card-title" style="margin:0;">📂 Acceso a carpetas — <span id="panel-acceso-nombre" style="color:var(--blue-l);"></span></div>
+              <div style="font-size:12px;color:var(--text-g);margin-top:3px;">Marca las carpetas a las que tendrá acceso. Sin selección = acceso total.</div>
+            </div>
+            <button onclick="cerrarPanelAcceso()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-g);">✕</button>
+          </div>
+          <div id="panel-acceso-checks" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;"></div>
+          <div style="display:flex;gap:10px;">
+            <button class="btn-sm btn-blue" onclick="guardarAccesoCarpetas()" style="padding:9px 22px;">💾 Guardar acceso</button>
+            <button class="btn-sm btn-gray" onclick="quitarRestriccionesCarpetas()" style="padding:9px 18px;">🔓 Sin restricción (acceso total)</button>
+          </div>
+        </div>
       </div>
 
       <!-- ── MATERIAS (admin) ───────────────────────── -->
@@ -1182,6 +1197,7 @@ const DB_PATH        = "biblioteca_maah";                 // Ruta raíz en Fireb
 let db, auth, storage, currentUser = null, isAdmin = false;
 let allPdfs = [];
 let allAudios = [];
+let userCarpetasPermitidas = null; // null = acceso total; array de IDs = solo esas carpetas
 
 try {
   firebase.initializeApp(FIREBASE_CONFIG);
@@ -1340,6 +1356,8 @@ function showApp(){
   db.ref(`${DB_PATH}/usuarios/${currentUser.uid}`).once('value').then(snap=>{
     const u = snap.val()||{};
     document.getElementById('top-name').textContent = u.nombre || currentUser.email;
+    // Cargar permisos de carpetas (null = acceso total)
+    userCarpetasPermitidas = u.carpetasPermitidas || null;
   });
   if(isAdmin) goTo('dashboard'); else goTo('biblioteca-user');
 }
@@ -1713,21 +1731,90 @@ async function deletePdf(id, nombre){
 }
 
 // ══ USERS MANAGEMENT ══════════════════════════════════════
+let _accesoUid = null;
+
 function loadUsers(){
   db.ref(`${DB_PATH}/usuarios`).once('value', snap=>{
     const users = snap.val()||{};
     const tbody = document.getElementById('users-tbody');
     const arr = Object.entries(users).map(([uid,u])=>({uid,...u}));
-    if(!arr.length){ tbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--text-g);padding:30px;">Sin usuarios registrados</td></tr>'; return; }
-    tbody.innerHTML = arr.map(u=>`
-      <tr>
+    if(!arr.length){ tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--text-g);padding:30px;">Sin usuarios registrados</td></tr>'; return; }
+    tbody.innerHTML = arr.map(u=>{
+      const carpetas = u.carpetasPermitidas;
+      const accesoBadge = carpetas && carpetas.length
+        ? `<span class="badge badge-blue" title="${carpetas.length} carpeta(s)">📂 ${carpetas.length} carpeta(s)</span>`
+        : `<span style="font-size:11px;color:var(--text-g);">🔓 Total</span>`;
+      return `<tr>
         <td><div style="font-weight:600;color:var(--navy);">${u.nombre||'—'}</div><div style="font-size:11px;color:var(--text-g);">${u.rol==='admin'?'👑 Admin':'Usuario'}</div></td>
         <td style="font-size:12px;">${u.email||'—'}</td>
         <td>${u.plan==='activo'||u.rol==='admin'?'<span class="badge badge-green">Activo</span>':'<span class="badge badge-red">Inactivo</span>'}</td>
+        <td>${accesoBadge}</td>
         <td style="font-size:12px;">${fmtDate(u.fechaRegistro)}</td>
-        <td>${u.rol!=='admin'?`<button class="btn-sm ${u.plan==='activo'?'btn-gray':'btn-green'}" onclick="toggleUserPlan('${u.uid}','${u.plan}')">${u.plan==='activo'?'Desactivar':'Activar'}</button>`:'<span style="font-size:11px;color:var(--text-g);">Admin</span>'}</td>
-      </tr>`).join('');
+        <td style="white-space:nowrap;display:flex;gap:6px;">
+          ${u.rol!=='admin'?`<button class="btn-sm ${u.plan==='activo'?'btn-gray':'btn-green'}" onclick="toggleUserPlan('${u.uid}','${u.plan||''}')">${u.plan==='activo'?'Desactivar':'Activar'}</button>`:''}
+          ${u.rol!=='admin'?`<button class="btn-sm btn-blue" onclick="abrirAccesoCarpetas('${u.uid}','${(u.nombre||u.email||'').replace(/'/g,"\\'")}')">📂 Acceso</button>`:'<span style="font-size:11px;color:var(--text-g);">Admin</span>'}
+        </td>
+      </tr>`;
+    }).join('');
+    // Actualizar thead
+    document.querySelector('#users-table thead tr').innerHTML =
+      '<th>Usuario</th><th>Email</th><th>Plan</th><th>Acceso</th><th>Registro</th><th>Acciones</th>';
   });
+}
+
+async function abrirAccesoCarpetas(uid, nombre){
+  _accesoUid = uid;
+  document.getElementById('panel-acceso-nombre').textContent = nombre;
+  document.getElementById('panel-acceso-carpetas').style.display='';
+
+  // Cargar permisos actuales del usuario
+  const snap = await db.ref(`${DB_PATH}/usuarios/${uid}/carpetasPermitidas`).once('value');
+  const permitidas = snap.val() || [];
+
+  // Construir checkboxes jerárquicos
+  const raices = allMaterias.filter(m=>!m.parentId);
+  let html = '';
+  raices.forEach(r=>{
+    const hijos = allMaterias.filter(h=>h.parentId===r.id);
+    html += `<div style="background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:10px 14px;min-width:200px;">
+      <label style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:var(--navy);cursor:pointer;">
+        <input type="checkbox" class="acceso-check" value="${r.id}" ${permitidas.includes(r.id)?'checked':''} style="width:16px;height:16px;">
+        ${r.icono||'📁'} ${r.nombre}
+      </label>`;
+    hijos.forEach(h=>{
+      html += `<label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text);cursor:pointer;margin-top:6px;padding-left:12px;">
+        <input type="checkbox" class="acceso-check" value="${h.id}" ${permitidas.includes(h.id)?'checked':''} style="width:14px;height:14px;">
+        ↳ ${h.icono||'📂'} ${h.nombre}
+      </label>`;
+    });
+    html += '</div>';
+  });
+  document.getElementById('panel-acceso-checks').innerHTML = html || '<p style="color:var(--text-g);">No hay carpetas creadas.</p>';
+
+  // Scroll al panel
+  document.getElementById('panel-acceso-carpetas').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function cerrarPanelAcceso(){
+  document.getElementById('panel-acceso-carpetas').style.display='none';
+  _accesoUid = null;
+}
+
+async function guardarAccesoCarpetas(){
+  if(!_accesoUid) return;
+  const ids = [...document.querySelectorAll('.acceso-check:checked')].map(cb=>cb.value);
+  await db.ref(`${DB_PATH}/usuarios/${_accesoUid}/carpetasPermitidas`).set(ids.length ? ids : null);
+  showToast(ids.length ? `Acceso guardado: ${ids.length} carpeta(s) ✓` : 'Acceso total guardado ✓','green');
+  cerrarPanelAcceso();
+  loadUsers();
+}
+
+async function quitarRestriccionesCarpetas(){
+  if(!_accesoUid) return;
+  await db.ref(`${DB_PATH}/usuarios/${_accesoUid}/carpetasPermitidas`).remove();
+  showToast('Acceso total (sin restricción) ✓','green');
+  cerrarPanelAcceso();
+  loadUsers();
 }
 
 async function toggleUserPlan(uid, currentPlan){
@@ -2054,9 +2141,21 @@ function _carpetaCard(m, onclick, esHijo){
   </div>`;
 }
 
+function _carpetaPermitida(m){
+  // Admin o sin restricción → todas visibles
+  if(isAdmin || !userCarpetasPermitidas) return true;
+  const ids = userCarpetasPermitidas;
+  // Raíz permitida directamente
+  if(ids.includes(m.id)) return true;
+  // Raíz con al menos una subcarpeta permitida
+  if(!m.parentId) return allMaterias.some(h=>h.parentId===m.id && ids.includes(h.id));
+  // Subcarpeta permitida
+  return false;
+}
+
 function renderCarpetas(){
   const el = document.getElementById('lib-carpetas-grid');
-  const raices = allMaterias.filter(m=>m.activo!==false && !m.parentId);
+  const raices = allMaterias.filter(m=>m.activo!==false && !m.parentId && _carpetaPermitida(m));
   if(!raices.length){
     el.innerHTML='<div class="empty-state" style="grid-column:1/-1;"><div class="es-icon">📂</div><p>No hay materias disponibles aún.</p></div>';
     return;
@@ -2067,7 +2166,7 @@ function renderCarpetas(){
 function abrirMateria(id){
   const m = allMaterias.find(x=>x.id===id);
   if(!m) return;
-  const hijos = allMaterias.filter(h=>h.parentId===id && h.activo!==false);
+  let hijos = allMaterias.filter(h=>h.parentId===id && h.activo!==false && _carpetaPermitida(h));
   if(hijos.length>0){
     // Mostrar subcarpetas
     currentMateria = null;
