@@ -11,7 +11,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-database-compat.js"></script>
-<!-- Storage no requerido en plan gratuito -->
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-storage-compat.js"></script>
 <style>
 :root{
   --navy:#0a1628;--navy2:#1a3f6f;--blue:#1e40af;--blue-l:#3b82f6;
@@ -193,7 +193,7 @@ footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
 .data-table td{padding:12px 14px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle;}
 .data-table tr:hover td{background:#fafbff;}
 .data-table tr:last-child td{border-bottom:none;}
-/* AUDIO CARD */
+/* MULTIMEDIA CARDS */
 #lib-audio-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;}
 .audio-card{background:linear-gradient(145deg,#1e1040,#3b1d8a,#6d28d9);border-radius:16px;padding:18px 16px 16px;box-shadow:0 6px 24px rgba(109,40,217,.35);display:flex;flex-direction:column;align-items:center;text-align:center;gap:9px;transition:var(--tr);cursor:default;position:relative;overflow:hidden;}
 .audio-card::before{content:'';position:absolute;top:-30px;right:-30px;width:90px;height:90px;border-radius:50%;background:rgba(255,255,255,.05);pointer-events:none;}
@@ -206,6 +206,24 @@ footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
 .audio-listen-btn{display:inline-flex;align-items:center;gap:5px;padding:7px 16px;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);border-radius:30px;color:#fff;font-size:12px;font-weight:700;text-decoration:none;transition:var(--tr);backdrop-filter:blur(4px);}
 .audio-listen-btn:hover{background:rgba(255,255,255,.28);border-color:rgba(255,255,255,.6);transform:scale(1.04);}
 .audio-no-url{font-size:11px;color:rgba(255,100,100,.8);margin-top:4px;}
+/* Video cards (YouTube / archivo) — más anchas */
+.video-card{grid-column:span 2;background:var(--card);border-radius:16px;overflow:hidden;box-shadow:0 4px 18px rgba(0,0,0,.08);border:1px solid var(--border);transition:var(--tr);}
+.video-card:hover{box-shadow:0 8px 28px rgba(0,0,0,.13);}
+.video-card-player{width:100%;aspect-ratio:16/9;background:#000;display:block;}
+.video-card-info{padding:12px 14px;}
+.video-card-name{font-size:13px;font-weight:700;color:var(--navy);margin-bottom:3px;}
+.video-card-meta{font-size:11px;color:var(--text-g);}
+/* Upload progress */
+.media-upload-bar-wrap{height:6px;background:var(--border);border-radius:4px;overflow:hidden;margin-top:10px;display:none;}
+.media-upload-bar{height:100%;background:var(--blue-l);border-radius:4px;width:0%;transition:width .3s;}
+/* Tipo toggle */
+.tipo-toggle{display:flex;gap:8px;margin-bottom:4px;}
+.tipo-btn{flex:1;padding:8px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);font-size:12px;font-weight:600;color:var(--text-g);cursor:pointer;transition:var(--tr);}
+.tipo-btn.active{border-color:var(--blue-l);background:#eff6ff;color:var(--blue-l);}
+/* Fuente toggle */
+.fuente-toggle{display:flex;gap:6px;margin-bottom:4px;}
+.fuente-btn{flex:1;padding:7px 6px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);font-size:11px;font-weight:600;color:var(--text-g);cursor:pointer;transition:var(--tr);}
+.fuente-btn.active{border-color:var(--blue-l);background:#eff6ff;color:var(--blue-l);}
 /* CUESTIONARIO */
 .quiz-header{background:linear-gradient(135deg,var(--navy),var(--navy2));border-radius:var(--radius);padding:24px 28px;margin-bottom:24px;color:#fff;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
 .quiz-score-badge{background:rgba(255,255,255,.15);border-radius:30px;padding:6px 18px;font-size:22px;font-weight:800;color:#fff;}
@@ -596,7 +614,7 @@ footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
           <span class="ni-icon">⬆️</span><span class="ni-text">Subir PDF</span>
         </div>
         <div class="nav-item" data-view="audios-admin" onclick="goTo('audios-admin')">
-          <span class="ni-icon">🎵</span><span class="ni-text">Audios</span>
+          <span class="ni-icon">🎵</span><span class="ni-text">Multimedia</span>
         </div>
         <div class="nav-item" data-view="materias" onclick="goTo('materias')">
           <span class="ni-icon">📁</span><span class="ni-text">Materias</span>
@@ -794,18 +812,29 @@ footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
         </div>
       </div>
 
-      <!-- ── AUDIOS (admin) ──────────────────────────── -->
+      <!-- ── MULTIMEDIA (admin) ─────────────────────── -->
       <div class="view" id="view-audios-admin">
         <div class="page-header">
-          <h2>Audios</h2>
-          <p>Agrega y gestiona los audios disponibles por materia</p>
+          <h2>🎵 Multimedia</h2>
+          <p>Agrega audios y videos por materia — archivos del PC o links de YouTube</p>
         </div>
-        <!-- Formulario agregar audio -->
+        <!-- Formulario agregar -->
         <div class="card" style="max-width:680px;margin-bottom:24px;">
-          <div class="card-title">🎵 Agregar audio</div>
+          <div class="card-title">➕ Agregar multimedia</div>
+
+          <!-- Tipo: Audio / Video -->
+          <div class="field-group" style="margin-bottom:14px;">
+            <label>Tipo de contenido</label>
+            <div class="tipo-toggle">
+              <button class="tipo-btn active" id="tipo-btn-audio" onclick="setTipo('audio')">🎵 Audio</button>
+              <button class="tipo-btn" id="tipo-btn-video" onclick="setTipo('video')">🎬 Video</button>
+            </div>
+          </div>
+
+          <!-- Nombre + Materia -->
           <div class="field-row col2">
             <div class="field-group">
-              <label>Nombre del audio</label>
+              <label>Nombre</label>
               <input type="text" id="audio-nombre" placeholder="Ej: Clase 1 — Introducción">
             </div>
             <div class="field-group">
@@ -815,20 +844,45 @@ footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
               </select>
             </div>
           </div>
-          <div class="field-row">
-            <div class="field-group">
-              <label>URL del audio</label>
-              <input type="url" id="audio-url" placeholder="https://... (OneDrive, Google Drive, link directo .mp3)">
-              <div style="font-size:11px;color:var(--text-g);margin-top:4px;">💡 Pega el link del audio. Funciona mejor con links directos a archivos .mp3, .m4a, .wav o links de Google Drive.</div>
+
+          <!-- Fuente: Archivo / Link / YouTube -->
+          <div class="field-group" style="margin-bottom:14px;">
+            <label>Fuente</label>
+            <div class="fuente-toggle" id="fuente-toggle">
+              <button class="fuente-btn active" id="fuente-btn-archivo" onclick="setFuente('archivo')">📁 Subir archivo</button>
+              <button class="fuente-btn" id="fuente-btn-link" onclick="setFuente('link')">🔗 Link directo</button>
+              <button class="fuente-btn" id="fuente-btn-youtube" onclick="setFuente('youtube')" style="display:none;">▶️ YouTube</button>
             </div>
           </div>
-          <div class="field-row">
-            <div class="field-group">
-              <label>Descripción (opcional)</label>
-              <input type="text" id="audio-desc" placeholder="Tema, duración, docente...">
-            </div>
+
+          <!-- Input archivo -->
+          <div id="fuente-archivo-wrap" class="field-group">
+            <label id="archivo-label">Archivo de audio (.mp3 .m4a .wav)</label>
+            <input type="file" id="audio-file" accept="audio/*,video/*" style="padding:8px;border:1.5px solid var(--border);border-radius:8px;width:100%;font-size:13px;">
+            <div class="media-upload-bar-wrap" id="upload-bar-wrap"><div class="media-upload-bar" id="upload-bar"></div></div>
+            <div id="upload-status" style="font-size:11px;color:var(--text-g);margin-top:4px;"></div>
           </div>
-          <button class="btn-sm btn-blue" onclick="subirAudio()" style="padding:11px 24px;font-size:13px;">🎵 Agregar audio</button>
+
+          <!-- Input link -->
+          <div id="fuente-link-wrap" class="field-group" style="display:none;">
+            <label>URL del archivo (link directo .mp3, .mp4, OneDrive...)</label>
+            <input type="url" id="audio-url" placeholder="https://...">
+          </div>
+
+          <!-- Input YouTube -->
+          <div id="fuente-youtube-wrap" class="field-group" style="display:none;">
+            <label>Link de YouTube</label>
+            <input type="url" id="audio-youtube" placeholder="https://www.youtube.com/watch?v=...">
+            <div style="font-size:11px;color:var(--text-g);margin-top:4px;">💡 Pega el link normal de YouTube. El video se incrustará directamente.</div>
+          </div>
+
+          <!-- Descripción -->
+          <div class="field-group">
+            <label>Descripción (opcional)</label>
+            <input type="text" id="audio-desc" placeholder="Tema, duración, docente...">
+          </div>
+
+          <button class="btn-sm btn-blue" onclick="subirMedia()" id="btn-subir-media" style="padding:11px 24px;font-size:13px;">🎵 Agregar</button>
         </div>
         <!-- Lista audios -->
         <div class="card">
@@ -1148,14 +1202,15 @@ const ADMIN_EMAIL    = "marcoaraya1973@gmail.com";        // Email del administr
 const DB_PATH        = "biblioteca_maah";                 // Ruta raíz en Firebase
 
 // ── Firebase init ─────────────────────────────────────────
-let db, auth, currentUser = null, isAdmin = false;
+let db, auth, storage, currentUser = null, isAdmin = false;
 let allPdfs = [];
 let allAudios = [];
 
 try {
   firebase.initializeApp(FIREBASE_CONFIG);
-  db   = firebase.database();
-  auth = firebase.auth();
+  db      = firebase.database();
+  auth    = firebase.auth();
+  storage = firebase.storage();
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 } catch(e) {
   console.warn('Firebase no configurado:', e.message);
@@ -1765,33 +1820,136 @@ function loadAdminAudios(){
   if(!el) return;
   if(!allAudios.length){ count.textContent='0'; el.innerHTML='<div class="empty-state"><div class="es-icon">🎵</div><p>No hay audios aún.<br>Agrega el primero arriba.</p></div>'; return; }
   count.textContent=allAudios.length;
-  el.innerHTML=`<table class="data-table"><thead><tr><th>Audio</th><th>Materia</th><th>URL</th><th>Fecha</th><th>Acción</th></tr></thead><tbody>
-    ${allAudios.map(a=>`<tr>
-      <td><div style="font-weight:600;color:var(--navy);">${a.nombre||'Sin nombre'}</div><div style="font-size:11px;color:var(--text-g);">${a.descripcion||''}</div></td>
-      <td><span class="badge badge-blue">${a.categoria||'—'}</span></td>
-      <td style="text-align:center;">${a.urlAudio?`<a href="${a.urlAudio}" target="_blank" style="color:var(--green);font-size:18px;">🔗</a>`:'<span style="color:var(--border);">—</span>'}</td>
-      <td>${fmtDate(a.fechaSubida)}</td>
-      <td><button class="btn-sm btn-red" onclick="deleteAudio('${a.id}','${(a.nombre||'').replace(/'/g,"\\'")}')">🗑️</button></td>
-    </tr>`).join('')}
+  el.innerHTML=`<table class="data-table"><thead><tr><th>Nombre</th><th>Tipo</th><th>Materia</th><th>Fuente</th><th>Fecha</th><th>Acción</th></tr></thead><tbody>
+    ${allAudios.map(a=>{
+      const tipo = a.tipo||'audio';
+      const tipoLabel = tipo==='video'?'🎬 Video': tipo==='youtube'?'▶️ YouTube':'🎵 Audio';
+      const tipoColor = tipo==='audio'?'badge-blue': tipo==='youtube'?'badge-red':'badge-green';
+      const url = a.urlMedia||a.urlAudio||'';
+      return `<tr>
+        <td><div style="font-weight:600;color:var(--navy);">${a.nombre||'Sin nombre'}</div><div style="font-size:11px;color:var(--text-g);">${a.descripcion||''}</div></td>
+        <td><span class="badge ${tipoColor}">${tipoLabel}</span></td>
+        <td><span class="badge badge-blue">${a.categoria||'—'}</span></td>
+        <td style="text-align:center;">${url?`<a href="${url}" target="_blank" style="color:var(--green);font-size:18px;">🔗</a>`:'<span style="color:var(--border);">—</span>'}</td>
+        <td>${fmtDate(a.fechaSubida)}</td>
+        <td><button class="btn-sm btn-red" onclick="deleteAudio('${a.id}','${(a.nombre||'').replace(/'/g,"\\'")}')">🗑️</button></td>
+      </tr>`;
+    }).join('')}
   </tbody></table>`;
 }
 
-async function subirAudio(){
+// ── UI toggles multimedia form ─────────────────────────────
+let _mediaTipo = 'audio';
+let _mediaFuente = 'archivo';
+
+function setTipo(t){
+  _mediaTipo = t;
+  document.getElementById('tipo-btn-audio').classList.toggle('active', t==='audio');
+  document.getElementById('tipo-btn-video').classList.toggle('active', t==='video');
+  // YouTube solo disponible para video
+  document.getElementById('fuente-btn-youtube').style.display = t==='video' ? '' : 'none';
+  if(t==='audio' && _mediaFuente==='youtube') setFuente('archivo');
+  // Actualizar label archivo
+  document.getElementById('archivo-label').textContent =
+    t==='audio' ? 'Archivo de audio (.mp3 .m4a .wav)' : 'Archivo de video (.mp4 .webm .mov)';
+  document.getElementById('audio-file').accept = t==='audio' ? 'audio/*' : 'video/*';
+  document.getElementById('btn-subir-media').textContent = t==='audio' ? '🎵 Agregar audio' : '🎬 Agregar video';
+}
+
+function setFuente(f){
+  _mediaFuente = f;
+  ['archivo','link','youtube'].forEach(x=>{
+    const btn = document.getElementById(`fuente-btn-${x}`);
+    const wrap = document.getElementById(`fuente-${x}-wrap`);
+    if(btn) btn.classList.toggle('active', x===f);
+    if(wrap) wrap.style.display = x===f ? '' : 'none';
+  });
+}
+
+function _ytVideoId(url){
+  const m = url.match(/(?:v=|youtu\.be\/|embed\/)([A-Za-z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
+
+async function subirMedia(){
   const nombre = document.getElementById('audio-nombre').value.trim();
   const cat    = document.getElementById('audio-categoria').value;
-  const url    = document.getElementById('audio-url').value.trim();
   const desc   = document.getElementById('audio-desc').value.trim();
-  if(!nombre){ showToast('Escribe el nombre del audio.','red'); return; }
+  if(!nombre){ showToast('Escribe el nombre.','red'); return; }
   if(!cat){ showToast('Selecciona una materia.','red'); return; }
-  if(!url){ showToast('Pega la URL del audio.','red'); return; }
-  const newRef = db.ref(`${DB_PATH}/audios`).push();
-  await newRef.set({ id: newRef.key, nombre, categoria: cat, urlAudio: url, descripcion: desc, fechaSubida: new Date().toISOString(), subidoPor: currentUser.email });
-  document.getElementById('audio-nombre').value='';
-  document.getElementById('audio-url').value='';
-  document.getElementById('audio-desc').value='';
-  showToast(`Audio "${nombre}" agregado ✓`,'green');
-  loadAdminAudios();
+
+  const btn = document.getElementById('btn-subir-media');
+  btn.disabled = true;
+
+  try{
+    let urlMedia = '', tipo = _mediaTipo;
+
+    if(_mediaFuente === 'youtube'){
+      const ytUrl = document.getElementById('audio-youtube').value.trim();
+      if(!ytUrl){ showToast('Pega el link de YouTube.','red'); btn.disabled=false; return; }
+      const vid = _ytVideoId(ytUrl);
+      if(!vid){ showToast('Link de YouTube no válido.','red'); btn.disabled=false; return; }
+      urlMedia = `https://www.youtube.com/embed/${vid}`;
+      tipo = 'youtube';
+
+    } else if(_mediaFuente === 'link'){
+      urlMedia = document.getElementById('audio-url').value.trim();
+      if(!urlMedia){ showToast('Pega la URL del archivo.','red'); btn.disabled=false; return; }
+
+    } else {
+      // Subir archivo a Firebase Storage
+      const file = document.getElementById('audio-file').files[0];
+      if(!file){ showToast('Selecciona un archivo.','red'); btn.disabled=false; return; }
+      const ext = file.name.split('.').pop();
+      const path = `${DB_PATH}/media/${Date.now()}_${nombre.replace(/\s+/g,'_')}.${ext}`;
+      const ref  = storage.ref(path);
+      const task = ref.put(file);
+
+      // Mostrar progreso
+      const barWrap = document.getElementById('upload-bar-wrap');
+      const bar     = document.getElementById('upload-bar');
+      const status  = document.getElementById('upload-status');
+      barWrap.style.display = '';
+
+      urlMedia = await new Promise((res,rej)=>{
+        task.on('state_changed',
+          snap => {
+            const pct = Math.round(snap.bytesTransferred/snap.totalBytes*100);
+            bar.style.width = pct+'%';
+            status.textContent = `Subiendo... ${pct}%`;
+          },
+          err => rej(err),
+          async () => {
+            status.textContent = 'Procesando...';
+            res(await task.snapshot.ref.getDownloadURL());
+          }
+        );
+      });
+
+      barWrap.style.display = 'none';
+      bar.style.width = '0%';
+      status.textContent = '';
+    }
+
+    const newRef = db.ref(`${DB_PATH}/audios`).push();
+    await newRef.set({ id: newRef.key, nombre, categoria: cat, tipo, urlMedia, descripcion: desc, fechaSubida: new Date().toISOString(), subidoPor: currentUser.email });
+
+    // Reset form
+    document.getElementById('audio-nombre').value='';
+    document.getElementById('audio-url').value='';
+    document.getElementById('audio-youtube').value='';
+    document.getElementById('audio-file').value='';
+    document.getElementById('audio-desc').value='';
+    showToast(`"${nombre}" agregado ✓`,'green');
+    loadAdminAudios();
+  } catch(e){
+    showToast('Error al guardar: '+e.message,'red');
+  }
+  btn.disabled = false;
 }
+
+// Alias para compatibilidad con llamadas antiguas
+async function subirAudio(){ return subirMedia(); }
 
 async function deleteAudio(id, nombre){
   modalConfirm({
@@ -1824,20 +1982,62 @@ function switchLibTab(tab){
 function renderAudioGrid(materia){
   const el = document.getElementById('lib-audio-grid');
   if(!el) return;
-  const audios = materia ? allAudios.filter(a=>a.categoria===materia) : allAudios;
+  const audios = materia
+    ? allAudios.filter(a=>a.categoria===materia||a.categoria===materia)
+    : allAudios;
   if(!audios.length){
     el.innerHTML='<div class="empty-state" style="grid-column:1/-1;"><div class="es-icon">🎧</div><p>No hay audios en esta materia aún.</p></div>';
     return;
   }
-  el.innerHTML = audios.map(a=>`
-    <div class="audio-card">
+  el.innerHTML = audios.map(a=>{
+    const tipo = a.tipo || 'audio';
+    const url  = a.urlMedia || a.urlAudio || '';
+    const meta = `${a.descripcion||''}`;
+
+    if(tipo === 'youtube'){
+      return `<div class="video-card">
+        <iframe class="video-card-player" src="${url}" frameborder="0" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe>
+        <div class="video-card-info">
+          <div class="video-card-name">▶️ ${a.nombre||'Sin nombre'}</div>
+          ${meta ? `<div class="video-card-meta">${meta}</div>` : ''}
+        </div>
+      </div>`;
+    }
+
+    if(tipo === 'video'){
+      return `<div class="video-card">
+        <video class="video-card-player" controls preload="metadata">
+          <source src="${url}">Tu navegador no soporta video.
+        </video>
+        <div class="video-card-info">
+          <div class="video-card-name">🎬 ${a.nombre||'Sin nombre'}</div>
+          ${meta ? `<div class="video-card-meta">${meta}</div>` : ''}
+        </div>
+      </div>`;
+    }
+
+    // Audio (archivo subido o link)
+    if(url && (url.match(/\.(mp3|m4a|wav|ogg|aac)(\?|$)/i) || a.tipo==='audio')){
+      return `<div class="audio-card">
+        <div class="audio-headphones">🎧</div>
+        <div class="audio-card-name">${a.nombre||'Sin nombre'}</div>
+        <div class="audio-card-meta">${meta}</div>
+        <audio controls style="width:100%;margin-top:4px;border-radius:8px;" preload="none">
+          <source src="${url}">
+        </audio>
+      </div>`;
+    }
+
+    // Audio link externo (OneDrive, etc.)
+    return `<div class="audio-card">
       <div class="audio-headphones">🎧</div>
       <div class="audio-card-name">${a.nombre||'Sin nombre'}</div>
-      <div class="audio-card-meta">${a.categoria||''}${a.descripcion?' · '+a.descripcion:''}</div>
-      ${a.urlAudio
-        ? `<a class="audio-listen-btn" href="${a.urlAudio}" target="_blank" rel="noopener">▶ Escuchar</a>`
+      <div class="audio-card-meta">${meta}</div>
+      ${url
+        ? `<a class="audio-listen-btn" href="${url}" target="_blank" rel="noopener">▶ Escuchar</a>`
         : `<div class="audio-no-url">⚠️ Sin URL configurada</div>`}
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 // ══ USER LIBRARY ══════════════════════════════════════════
