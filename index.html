@@ -1425,7 +1425,7 @@ function loadDashboard(){
     if(!lastQs.length){ el.innerHTML='<p style="font-size:13px;color:var(--text-g);">Sin consultas aún</p>'; return; }
     el.innerHTML = lastQs.slice(0,4).map(q=>`
       <div style="padding:10px 0;border-bottom:1px solid var(--border);">
-        <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:2px;">${(q.pregunta||'').slice(0,70)}${(q.pregunta||'').length>70?'...':''}</div>
+        <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:2px;">${escHtml((q.pregunta||'').slice(0,70))}${(q.pregunta||'').length>70?'...':''}</div>
         <div style="font-size:11px;color:var(--text-g);">${fmtDate(q.fecha)}</div>
       </div>`).join('');
   });
@@ -1475,7 +1475,7 @@ function renderFileList(){
   el.innerHTML = selectedFiles.map((item,i)=>`
     <div class="file-row" id="file-row-${i}">
       <span style="font-size:20px;flex-shrink:0;">📄</span>
-      <input class="file-name-edit" id="fname-${i}" value="${item.nombre}" oninput="selectedFiles[${i}].nombre=this.value" title="Edita el nombre del documento">
+      <input class="file-name-edit" id="fname-${i}" value="${escHtml(item.nombre)}" oninput="selectedFiles[${i}].nombre=this.value" title="Edita el nombre del documento">
       <span style="font-size:11px;color:var(--text-g);white-space:nowrap;flex-shrink:0;">${(item.file.size/1024/1024).toFixed(1)} MB</span>
       <span id="file-status-${i}" style="font-size:18px;flex-shrink:0;min-width:22px;text-align:center;">⏳</span>
       <button onclick="removeFile(${i})" style="background:none;border:none;font-size:15px;color:var(--text-g);cursor:pointer;padding:4px;flex-shrink:0;" title="Quitar">✕</button>
@@ -1567,9 +1567,9 @@ function _buildMateriaOpts(selected=''){
   let opts = '<option value="">— Todas las carpetas —</option>';
   const raices = allMaterias.filter(m=>!m.parentId);
   raices.forEach(r=>{
-    opts += `<option value="${r.nombre}" ${selected===r.nombre?'selected':''}>${r.icono||'📁'} ${r.nombre}</option>`;
+    opts += `<option value="${escHtml(r.nombre)}" ${selected===r.nombre?'selected':''}>${r.icono||'📁'} ${escHtml(r.nombre)}</option>`;
     allMaterias.filter(h=>h.parentId===r.id).forEach(h=>{
-      opts += `<option value="${h.nombre}" ${selected===h.nombre?'selected':''}>&nbsp;&nbsp;&nbsp;↳ ${h.icono||'📂'} ${h.nombre}</option>`;
+      opts += `<option value="${escHtml(h.nombre)}" ${selected===h.nombre?'selected':''}>&nbsp;&nbsp;&nbsp;↳ ${h.icono||'📂'} ${escHtml(h.nombre)}</option>`;
     });
   });
   return opts;
@@ -1613,7 +1613,7 @@ function loadAdminPdfs(){
     ${pdfs.map(p=>`<tr id="row-pdf-${p.id}" onclick="togglePdfRow('${p.id}',event)">
       <td><input type="checkbox" class="row-cb pdf-cb" id="cb-pdf-${p.id}" value="${p.id}" onchange="updatePdfBulkBar()" onclick="event.stopPropagation()"></td>
       <td>
-        <div style="font-weight:600;color:var(--navy);font-size:13px;">${p.nombre||'Sin nombre'}</div>
+        <div style="font-weight:600;color:var(--navy);font-size:13px;">${escHtml(p.nombre||'Sin nombre')}</div>
         <div style="font-size:11px;color:var(--text-g);">${p.paginas||'?'} pág.${p.urlPdf?' · <span style="color:var(--green);">🔗 URL</span>':''}</div>
       </td>
       <td>
@@ -1624,8 +1624,8 @@ function loadAdminPdfs(){
       </td>
       <td style="text-align:center;">${p.paginas||'?'}</td>
       <td style="white-space:nowrap;">
-        <button class="btn-sm btn-blue" onclick="event.stopPropagation();editarUrlPdf('${p.id}','${(p.nombre||'').replace(/'/g,"\\'")}','${(p.urlPdf||'').replace(/'/g,"\\'")}')">✏️ URL</button>
-        <button class="btn-sm btn-red" onclick="event.stopPropagation();deletePdf('${p.id}','${(p.nombre||'').replace(/'/g,"\\'")}')">🗑️</button>
+        <button class="btn-sm btn-blue" onclick="event.stopPropagation();editarUrlPdf('${p.id}','${escJsAttr(p.nombre||'')}','${escJsAttr(p.urlPdf||'')}')">✏️ URL</button>
+        <button class="btn-sm btn-red" onclick="event.stopPropagation();deletePdf('${p.id}','${escJsAttr(p.nombre||'')}')">🗑️</button>
       </td>
     </tr>`).join('')}
     </tbody></table>`;
@@ -1687,7 +1687,7 @@ async function deleteSelectedPdfs(){
   modalConfirm({
     icon:'🗑️',
     title: `Eliminar ${ids.length} documento${ids.length!==1?'s':''}`,
-    msg: `Se eliminarán:<br><br><strong>${nombres.map(n=>`• ${n}`).join('<br>')}</strong><br><br>Esta acción no se puede deshacer.`,
+    msg: `Se eliminarán:<br><br><strong>${nombres.map(n=>`• ${escHtml(n)}`).join('<br>')}</strong><br><br>Esta acción no se puede deshacer.`,
     okLabel:'Eliminar todo',
     onOk: async()=>{
       for(const id of ids) await db.ref(`${DB_PATH}/pdfs/${id}`).remove();
@@ -1721,7 +1721,7 @@ async function deletePdf(id, nombre){
   modalConfirm({
     icon:'🗑️',
     title:'¿Eliminar documento?',
-    msg:`<strong>${nombre}</strong><br><br>Esta acción no se puede deshacer.`,
+    msg:`<strong>${escHtml(nombre)}</strong><br><br>Esta acción no se puede deshacer.`,
     okLabel:'Eliminar',
     onOk: async()=>{
       await db.ref(`${DB_PATH}/pdfs/${id}`).remove();
@@ -1745,14 +1745,14 @@ function loadUsers(){
         ? `<span class="badge badge-blue" title="${carpetas.length} carpeta(s)">📂 ${carpetas.length} carpeta(s)</span>`
         : `<span style="font-size:11px;color:var(--text-g);">🔓 Total</span>`;
       return `<tr>
-        <td><div style="font-weight:600;color:var(--navy);">${u.nombre||'—'}</div><div style="font-size:11px;color:var(--text-g);">${u.rol==='admin'?'👑 Admin':'Usuario'}</div></td>
-        <td style="font-size:12px;">${u.email||'—'}</td>
+        <td><div style="font-weight:600;color:var(--navy);">${escHtml(u.nombre||'—')}</div><div style="font-size:11px;color:var(--text-g);">${u.rol==='admin'?'👑 Admin':'Usuario'}</div></td>
+        <td style="font-size:12px;">${escHtml(u.email||'—')}</td>
         <td>${u.plan==='activo'||u.rol==='admin'?'<span class="badge badge-green">Activo</span>':'<span class="badge badge-red">Inactivo</span>'}</td>
         <td>${accesoBadge}</td>
         <td style="font-size:12px;">${fmtDate(u.fechaRegistro)}</td>
         <td style="white-space:nowrap;display:flex;gap:6px;">
           ${u.rol!=='admin'?`<button class="btn-sm ${u.plan==='activo'?'btn-gray':'btn-green'}" onclick="toggleUserPlan('${u.uid}','${u.plan||''}')">${u.plan==='activo'?'Desactivar':'Activar'}</button>`:''}
-          ${u.rol!=='admin'?`<button class="btn-sm btn-blue" onclick="abrirAccesoCarpetas('${u.uid}','${(u.nombre||u.email||'').replace(/'/g,"\\'")}')">📂 Acceso</button>`:'<span style="font-size:11px;color:var(--text-g);">Admin</span>'}
+          ${u.rol!=='admin'?`<button class="btn-sm btn-blue" onclick="abrirAccesoCarpetas('${u.uid}','${escJsAttr(u.nombre||u.email||'')}')">📂 Acceso</button>`:'<span style="font-size:11px;color:var(--text-g);">Admin</span>'}
         </td>
       </tr>`;
     }).join('');
@@ -1779,12 +1779,12 @@ async function abrirAccesoCarpetas(uid, nombre){
     html += `<div style="background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:10px 14px;min-width:200px;">
       <label style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:var(--navy);cursor:pointer;">
         <input type="checkbox" class="acceso-check" value="${r.id}" ${permitidas.includes(r.id)?'checked':''} style="width:16px;height:16px;">
-        ${r.icono||'📁'} ${r.nombre}
+        ${r.icono||'📁'} ${escHtml(r.nombre)}
       </label>`;
     hijos.forEach(h=>{
       html += `<label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text);cursor:pointer;margin-top:6px;padding-left:12px;">
         <input type="checkbox" class="acceso-check" value="${h.id}" ${permitidas.includes(h.id)?'checked':''} style="width:14px;height:14px;">
-        ↳ ${h.icono||'📂'} ${h.nombre}
+        ↳ ${h.icono||'📂'} ${escHtml(h.nombre)}
       </label>`;
     });
     html += '</div>';
@@ -1844,13 +1844,13 @@ function updateMateriaSelects(){
   raices.forEach(r=>{
     const hijos = allMaterias.filter(h=>h.parentId===r.id);
     if(hijos.length){
-      opts += `<optgroup label="${r.icono||'📁'} ${r.nombre}">`;
-      hijos.forEach(h=>{ opts+=`<option value="${h.nombre}">　${h.icono||'📂'} ${h.nombre}</option>`; });
+      opts += `<optgroup label="${escHtml(r.icono||'📁')} ${escHtml(r.nombre)}">`;
+      hijos.forEach(h=>{ opts+=`<option value="${escHtml(h.nombre)}">　${h.icono||'📂'} ${escHtml(h.nombre)}</option>`; });
       opts += '</optgroup>';
       // También permitir asignar a la raíz si se desea
-      opts += `<option value="${r.nombre}">${r.icono||'📁'} ${r.nombre} (raíz)</option>`;
+      opts += `<option value="${escHtml(r.nombre)}">${r.icono||'📁'} ${escHtml(r.nombre)} (raíz)</option>`;
     } else {
-      opts += `<option value="${r.nombre}">${r.icono||'📁'} ${r.nombre}</option>`;
+      opts += `<option value="${escHtml(r.nombre)}">${r.icono||'📁'} ${escHtml(r.nombre)}</option>`;
     }
   });
   ['pdf-categoria','audio-categoria'].forEach(id=>{ const s=document.getElementById(id); if(s) s.innerHTML=opts; });
@@ -1858,7 +1858,7 @@ function updateMateriaSelects(){
   const padreEl = document.getElementById('materia-padre');
   if(padreEl){
     padreEl.innerHTML = '<option value="">📁 Raíz (sin carpeta padre)</option>' +
-      raices.map(r=>`<option value="${r.id}">${r.icono||'📁'} ${r.nombre}</option>`).join('');
+      raices.map(r=>`<option value="${r.id}">${r.icono||'📁'} ${escHtml(r.nombre)}</option>`).join('');
   }
 }
 
@@ -1871,14 +1871,14 @@ function _materiaCard(m, esHijo){
     <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
       <span style="font-size:${esHijo?'22':'28'}px;flex-shrink:0;">${icon}</span>
       <div style="min-width:0;">
-        <div style="font-size:${esHijo?'13':'14'}px;font-weight:700;color:${activo?'var(--navy)':'var(--text-g)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.nombre}</div>
+        <div style="font-size:${esHijo?'13':'14'}px;font-weight:700;color:${activo?'var(--navy)':'var(--text-g)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(m.nombre)}</div>
         <div style="font-size:11px;color:var(--text-g);">${pdfCount} doc. · <span style="color:${activo?'var(--green)':'var(--red)'};font-weight:600;">${activo?'Visible':'Oculta'}</span>${esHijo?'<span style="margin-left:6px;color:var(--text-g);">· subcarpeta</span>':''}</div>
       </div>
     </div>
     <div style="display:flex;gap:6px;flex-shrink:0;">
       <button class="btn-sm btn-blue" onclick="editarMateria('${m.id}')" style="padding:5px 10px;font-size:11px;">✏️</button>
       <button class="btn-sm ${activo?'btn-gray':'btn-green'}" onclick="toggleMateria('${m.id}',${activo})" style="padding:5px 10px;font-size:11px;">${activo?'⏸ Ocultar':'▶ Activar'}</button>
-      <button class="btn-sm btn-red" onclick="eliminarMateria('${m.id}','${m.nombre}',${pdfCount},'${m.parentId||''}')" style="padding:5px 10px;font-size:11px;">✕</button>
+      <button class="btn-sm btn-red" onclick="eliminarMateria('${m.id}','${escJsAttr(m.nombre)}',${pdfCount},'${m.parentId||''}')" style="padding:5px 10px;font-size:11px;">✕</button>
     </div>
   </div>
   <div id="edit-materia-${m.id}" style="display:none;background:#f0f6ff;border:1.5px solid var(--blue-l);border-radius:var(--radius);padding:12px 16px;margin-top:4px;${esHijo?'margin-left:24px;':''}">
@@ -1886,7 +1886,7 @@ function _materiaCard(m, esHijo){
       <select id="edit-icono-${m.id}" style="font-size:20px;padding:6px 8px;border:1.5px solid var(--border);border-radius:8px;outline:none;">
         ${['📚','📐','🔬','🌍','💻','🎨','🏛️','📝','🔧','⚡','🌱','🎵','📁','📂','🏥','⚖️','🔐','📊'].map(e=>`<option value="${e}" ${m.icono===e?'selected':''}>${e}</option>`).join('')}
       </select>
-      <input id="edit-nombre-${m.id}" type="text" value="${m.nombre.replace(/"/g,'&quot;')}"
+      <input id="edit-nombre-${m.id}" type="text" value="${escHtml(m.nombre)}"
         style="flex:1;min-width:160px;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-weight:600;outline:none;"
         onkeydown="if(event.key==='Enter') guardarEdicionMateria('${m.id}')">
       <button class="btn-sm btn-blue" onclick="guardarEdicionMateria('${m.id}')" style="padding:8px 16px;">💾 Guardar</button>
@@ -1939,7 +1939,7 @@ async function eliminarMateria(id, nombre, pdfCount, parentId){
   modalConfirm({
     icon:'📁',
     title:'¿Eliminar carpeta?',
-    msg:`<strong>${nombre}</strong><br><br>Esta acción no se puede deshacer.`,
+    msg:`<strong>${escHtml(nombre)}</strong><br><br>Esta acción no se puede deshacer.`,
     okLabel:'Eliminar carpeta',
     onOk: async()=>{
       await db.ref(`${DB_PATH}/materias/${id}`).remove();
@@ -2014,12 +2014,12 @@ function loadAdminAudios(){
       const tipoColor = tipo==='audio'?'badge-blue': tipo==='youtube'?'badge-red':'badge-green';
       const url = a.urlMedia||a.urlAudio||'';
       return `<tr>
-        <td><div style="font-weight:600;color:var(--navy);">${a.nombre||'Sin nombre'}</div><div style="font-size:11px;color:var(--text-g);">${a.descripcion||''}</div></td>
+        <td><div style="font-weight:600;color:var(--navy);">${escHtml(a.nombre||'Sin nombre')}</div><div style="font-size:11px;color:var(--text-g);">${escHtml(a.descripcion||'')}</div></td>
         <td><span class="badge ${tipoColor}">${tipoLabel}</span></td>
-        <td><span class="badge badge-blue">${a.categoria||'—'}</span></td>
+        <td><span class="badge badge-blue">${escHtml(a.categoria||'—')}</span></td>
         <td style="text-align:center;">${url?`<a href="${url}" target="_blank" style="color:var(--green);font-size:18px;">🔗</a>`:'<span style="color:var(--border);">—</span>'}</td>
         <td>${fmtDate(a.fechaSubida)}</td>
-        <td><button class="btn-sm btn-red" onclick="deleteAudio('${a.id}','${(a.nombre||'').replace(/'/g,"\\'")}')">🗑️</button></td>
+        <td><button class="btn-sm btn-red" onclick="deleteAudio('${a.id}','${escJsAttr(a.nombre||'')}')">🗑️</button></td>
       </tr>`;
     }).join('')}
   </tbody></table>`;
@@ -2089,7 +2089,7 @@ async function subirAudio(){ return subirMedia(); }
 async function deleteAudio(id, nombre){
   modalConfirm({
     icon:'🎵', title:'¿Eliminar audio?',
-    msg:`<strong>${nombre}</strong><br><br>Esta acción no se puede deshacer.`,
+    msg:`<strong>${escHtml(nombre)}</strong><br><br>Esta acción no se puede deshacer.`,
     okLabel:'Eliminar',
     onOk: async()=>{
       await db.ref(`${DB_PATH}/audios/${id}`).remove();
@@ -2127,13 +2127,13 @@ function renderAudioGrid(materia){
   el.innerHTML = audios.map(a=>{
     const tipo = a.tipo || 'audio';
     const url  = a.urlMedia || a.urlAudio || '';
-    const meta = `${a.descripcion||''}`;
+    const meta = escHtml(a.descripcion||'');
 
     if(tipo === 'youtube'){
       return `<div class="video-card">
         <iframe class="video-card-player" src="${url}" frameborder="0" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe>
         <div class="video-card-info">
-          <div class="video-card-name">▶️ ${a.nombre||'Sin nombre'}</div>
+          <div class="video-card-name">▶️ ${escHtml(a.nombre||'Sin nombre')}</div>
           ${meta ? `<div class="video-card-meta">${meta}</div>` : ''}
         </div>
       </div>`;
@@ -2145,7 +2145,7 @@ function renderAudioGrid(materia){
           <source src="${url}">Tu navegador no soporta video.
         </video>
         <div class="video-card-info">
-          <div class="video-card-name">🎬 ${a.nombre||'Sin nombre'}</div>
+          <div class="video-card-name">🎬 ${escHtml(a.nombre||'Sin nombre')}</div>
           ${meta ? `<div class="video-card-meta">${meta}</div>` : ''}
         </div>
       </div>`;
@@ -2155,7 +2155,7 @@ function renderAudioGrid(materia){
     if(url && (url.match(/\.(mp3|m4a|wav|ogg|aac)(\?|$)/i) || a.tipo==='audio')){
       return `<div class="audio-card">
         <div class="audio-headphones">🎧</div>
-        <div class="audio-card-name">${a.nombre||'Sin nombre'}</div>
+        <div class="audio-card-name">${escHtml(a.nombre||'Sin nombre')}</div>
         <div class="audio-card-meta">${meta}</div>
         <audio controls style="width:100%;margin-top:4px;border-radius:8px;" preload="none">
           <source src="${url}">
@@ -2166,7 +2166,7 @@ function renderAudioGrid(materia){
     // Audio link externo (OneDrive, etc.)
     return `<div class="audio-card">
       <div class="audio-headphones">🎧</div>
-      <div class="audio-card-name">${a.nombre||'Sin nombre'}</div>
+      <div class="audio-card-name">${escHtml(a.nombre||'Sin nombre')}</div>
       <div class="audio-card-meta">${meta}</div>
       ${url
         ? `<a class="audio-listen-btn" href="${url}" target="_blank" rel="noopener">▶ Escuchar</a>`
@@ -2190,7 +2190,7 @@ function _carpetaCard(m, onclick, esHijo){
   const icono = esHijo ? (m.icono||'📂') : (m.icono||'📁');
   return `<div onclick="${onclick}" style="background:#fff;border-radius:var(--radius);padding:${esHijo?'20px 16px':'28px 22px'};border:1px solid var(--border);box-shadow:var(--shadow);cursor:pointer;transition:var(--tr);text-align:center;" onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='var(--shadow-l)';this.style.borderColor='var(--blue-l)'" onmouseleave="this.style.transform='';this.style.boxShadow='var(--shadow)';this.style.borderColor='var(--border)'">
     <div style="font-size:${esHijo?'36':'48'}px;margin-bottom:10px;">${icono}</div>
-    <div style="font-size:${esHijo?'13':'15'}px;font-weight:700;color:var(--navy);margin-bottom:5px;">${m.nombre}</div>
+    <div style="font-size:${esHijo?'13':'15'}px;font-weight:700;color:var(--navy);margin-bottom:5px;">${escHtml(m.nombre)}</div>
     <div style="font-size:12px;color:var(--text-g);">${subInfo}</div>
   </div>`;
 }
@@ -2289,10 +2289,10 @@ function renderLibraryGrid(pdfs){
   el.innerHTML = pdfs.map(p=>`
     <div style="background:#fff;border-radius:var(--radius);padding:22px;border:1px solid var(--border);box-shadow:var(--shadow);transition:var(--tr);" onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='var(--shadow-l)'" onmouseleave="this.style.transform='';this.style.boxShadow='var(--shadow)'">
       <div style="font-size:36px;margin-bottom:12px;">📄</div>
-      <div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:6px;line-height:1.3;">${p.nombre||'Sin nombre'}</div>
-      <div style="font-size:12px;color:var(--text-g);margin-bottom:10px;line-height:1.5;">${p.descripcion||''}</div>
+      <div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:6px;line-height:1.3;">${escHtml(p.nombre||'Sin nombre')}</div>
+      <div style="font-size:12px;color:var(--text-g);margin-bottom:10px;line-height:1.5;">${escHtml(p.descripcion||'')}</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
-        <span class="badge badge-blue">${p.categoria||'Sin materia'}</span>
+        <span class="badge badge-blue">${escHtml(p.categoria||'Sin materia')}</span>
         <span class="badge" style="background:#f1f5f9;color:var(--text-g);">${p.paginas||'?'} pág.</span>
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;">
@@ -2316,7 +2316,7 @@ function loadPdfSelector(){
   if(sel){
     const activas = allMaterias.filter(m=>m.activo!==false);
     sel.innerHTML = '<option value="">— Todas las carpetas —</option>' +
-      activas.map(m=>`<option value="${m.nombre}">${m.icono||'📁'} ${m.nombre}</option>`).join('');
+      activas.map(m=>`<option value="${escHtml(m.nombre)}">${m.icono||'📁'} ${escHtml(m.nombre)}</option>`).join('');
   }
   filtrarPdfsPorCarpeta();
 }
@@ -2337,7 +2337,7 @@ function renderPdfSelectorList(pdfs){
     <div class="pdf-item">
       <input type="checkbox" id="chk-pdf-${p.id}" value="${p.id}">
       <div class="pi-info">
-        <div class="pi-name">${p.nombre||'Sin nombre'}</div>
+        <div class="pi-name">${escHtml(p.nombre||'Sin nombre')}</div>
         <div class="pi-cat">${p.paginas||'?'} pág.</div>
       </div>
     </div>`).join('');
@@ -2503,7 +2503,10 @@ function formatAIResponse(text){
   });
   return html;
 }
-function escHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escHtml(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+// Para meter un valor dentro de onclick="fn('...')": primero cierra el atributo (& y ")
+// y luego el string JS (\ y '). Evita que un nombre con comillas rompa el boton o inyecte codigo.
+function escJsAttr(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/\\/g,'\\\\').replace(/'/g,'\\x27').replace(/[\r\n\t]/g,' '); }
 
 function appendMessage(role, text){
   const messages = document.getElementById('chat-messages');
@@ -2558,11 +2561,11 @@ function loadHistorial(){
     if(!qs.length){ el.innerHTML='<div class="empty-state"><div class="es-icon">💬</div><p>Aún no tienes consultas.<br>Ve a Consultar para comenzar.</p></div>'; return; }
     el.innerHTML = qs.map(q=>`
       <div class="hist-item">
-        <div class="hist-q">❓ ${q.pregunta||''}</div>
-        <div class="hist-a">${q.respuesta||''}</div>
+        <div class="hist-q">❓ ${escHtml(q.pregunta||'')}</div>
+        <div class="hist-a">${escHtml(q.respuesta||'')}</div>
         <div class="hist-meta">
           <span class="hist-date">🕐 ${fmtDate(q.fecha)}</span>
-          ${(q.pdfs||[]).map(n=>`<span class="hist-pdf">📄 ${n}</span>`).join('')}
+          ${(q.pdfs||[]).map(n=>`<span class="hist-pdf">📄 ${escHtml(n)}</span>`).join('')}
         </div>
       </div>`).join('');
   });
@@ -2573,7 +2576,7 @@ function initBancoPreguntas(){
   const sel = document.getElementById('banco-pdf-select');
   if(!sel) return;
   sel.innerHTML = '<option value="">— Selecciona un PDF —</option>' +
-    allPdfs.map(p=>`<option value="${p.id}">${p.nombre||'Sin nombre'}</option>`).join('');
+    allPdfs.map(p=>`<option value="${p.id}">${escHtml(p.nombre||'Sin nombre')}</option>`).join('');
   document.getElementById('banco-info').style.display='none';
   document.getElementById('banco-lista').innerHTML='<div class="empty-state"><div class="es-icon">📝</div><p>Selecciona un documento para ver sus preguntas.</p></div>';
 }
@@ -2600,16 +2603,16 @@ async function loadBancoPreguntas(){
         <div style="font-size:11px;font-weight:700;color:var(--blue-l);">PREGUNTA ${i+1} · PÁGINA ${q.pagina||'?'}</div>
         <button class="btn-sm btn-red" onclick="eliminarPregunta('${pdfId}','${q.id}')" style="padding:4px 10px;font-size:11px;flex-shrink:0;">🗑️ Eliminar</button>
       </div>
-      <div style="font-size:14px;font-weight:600;color:var(--navy);margin-bottom:12px;line-height:1.4;">${q.pregunta||''}</div>
+      <div style="font-size:14px;font-weight:600;color:var(--navy);margin-bottom:12px;line-height:1.4;">${escHtml(q.pregunta||'')}</div>
       <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;">
         ${['a','b','c','d'].map(k=>`
           <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;border:1.5px solid ${k===q.correcta?'var(--green)':'var(--border)'};background:${k===q.correcta?'#f0fdf4':'var(--bg)'};">
             <span style="width:22px;height:22px;border-radius:6px;background:${k===q.correcta?'var(--green)':'var(--border)'};color:${k===q.correcta?'#fff':'var(--text-g)'};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;">${k.toUpperCase()}</span>
-            <span style="font-size:13px;color:${k===q.correcta?'#166534':'var(--text)'};font-weight:${k===q.correcta?'700':'400'};">${q.alternativas?.[k]||''} ${k===q.correcta?'✓':''}</span>
+            <span style="font-size:13px;color:${k===q.correcta?'#166534':'var(--text)'};font-weight:${k===q.correcta?'700':'400'};">${escHtml(q.alternativas?.[k]||'')} ${k===q.correcta?'✓':''}</span>
           </div>`).join('')}
       </div>
       <div style="font-size:11px;color:var(--text-g);background:var(--bg);padding:8px 12px;border-radius:8px;border-left:3px solid var(--blue-l);">
-        💬 <em>"${q.fragmento||''}"</em>
+        💬 <em>"${escHtml(q.fragmento||'')}"</em>
       </div>
     </div>`).join('');
 }
@@ -2633,7 +2636,7 @@ async function limpiarBanco(){
   const pdf = allPdfs.find(p=>p.id===pdfId);
   modalConfirm({
     icon:'🗑️', title:'¿Limpiar banco completo?',
-    msg:`Se eliminarán <strong>todas las preguntas</strong> de <strong>${pdf?.nombre||'este documento'}</strong>.<br><br>La próxima vez que abras el cuestionario, se generarán nuevas.`,
+    msg:`Se eliminarán <strong>todas las preguntas</strong> de <strong>${escHtml(pdf?.nombre||'este documento')}</strong>.<br><br>La próxima vez que abras el cuestionario, se generarán nuevas.`,
     okLabel:'Limpiar todo',
     onOk: async()=>{
       await db.ref(`${DB_PATH}/cuestionarios/${pdfId}/preguntas`).remove();
@@ -2984,12 +2987,12 @@ function renderQuiz(){
     lista.innerHTML = currentQuizPreguntas.map((q,i)=>`
       <div class="quiz-q-card" id="qcard-${i}">
         <div class="quiz-q-num">Pregunta ${i+1} de ${currentQuizPreguntas.length} · Página ${q.pagina||'?'}</div>
-        <div class="quiz-q-text">${q.pregunta||''}</div>
+        <div class="quiz-q-text">${escHtml(q.pregunta||'')}</div>
         <div class="quiz-options">
           ${['a','b','c','d'].map(k=>`
             <div class="quiz-opt" id="qopt-${i}-${k}" onclick="seleccionarOpcion(${i},'${k}')">
               <div class="quiz-opt-key">${k.toUpperCase()}</div>
-              <span>${(q.alternativas&&q.alternativas[k])||''}</span>
+              <span>${escHtml((q.alternativas&&q.alternativas[k])||'')}</span>
             </div>`).join('')}
         </div>
       </div>`).join('');
@@ -3039,21 +3042,21 @@ function enviarCuestionario(){
     if(esCorrecta) correctas++;
     const linkCita = pdf?.urlPdf
       ? `<a href="${pdf.urlPdf}" target="_blank" style="color:var(--blue);font-weight:600;font-size:12px;">📄 Abrir PDF · Pág. ${q.pagina||'?'} ↗</a>`
-      : `<span style="font-size:12px;color:var(--text-g);">📄 ${currentQuizNombre} · Pág. ${q.pagina||'?'}</span>`;
+      : `<span style="font-size:12px;color:var(--text-g);">📄 ${escHtml(currentQuizNombre)} · Pág. ${q.pagina||'?'}</span>`;
     return `
       <div class="quiz-q-card" style="border-color:${esCorrecta?'var(--green)':'var(--red)'};">
         <div class="quiz-q-num" style="color:${esCorrecta?'var(--green)':'var(--red)'};">${esCorrecta?'✅':'❌'} Pregunta ${i+1} · Página ${q.pagina||'?'}</div>
-        <div class="quiz-q-text">${q.pregunta}</div>
+        <div class="quiz-q-text">${escHtml(q.pregunta||'')}</div>
         <div class="quiz-options">
           ${['a','b','c','d'].map(k=>{
             let cls='quiz-opt';
             if(k===q.correcta) cls+=' reveal-correct';
             if(k===seleccionada && !esCorrecta) cls+=' incorrect';
-            return `<div class="${cls}"><div class="quiz-opt-key">${k.toUpperCase()}</div><span>${q.alternativas[k]||''}</span>${k===q.correcta?'  ✓':k===seleccionada&&!esCorrecta?' ✗':''}</div>`;
+            return `<div class="${cls}"><div class="quiz-opt-key">${k.toUpperCase()}</div><span>${escHtml(q.alternativas[k]||'')}</span>${k===q.correcta?'  ✓':k===seleccionada&&!esCorrecta?' ✗':''}</div>`;
           }).join('')}
         </div>
         <div class="quiz-citation show">
-          💬 <em>"${q.fragmento||''}"</em><br><br>${linkCita}
+          💬 <em>"${escHtml(q.fragmento||'')}"</em><br><br>${linkCita}
         </div>
       </div>`;
   }).join('');
