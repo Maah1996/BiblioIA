@@ -388,9 +388,9 @@ function _buildMateriaOpts(selected=''){
   let opts = '<option value="">— Todas las carpetas —</option>';
   const raices = allMaterias.filter(m=>!m.parentId);
   raices.forEach(r=>{
-    opts += `<option value="${escHtml(r.nombre)}" ${selected===r.nombre?'selected':''}>${r.icono||'📁'} ${escHtml(r.nombre)}</option>`;
+    opts += `<option value="${escHtml(r.nombre)}" ${selected===r.nombre?'selected':''}>${escHtml(r.nombre)}</option>`;
     allMaterias.filter(h=>h.parentId===r.id).forEach(h=>{
-      opts += `<option value="${escHtml(h.nombre)}" ${selected===h.nombre?'selected':''}>&nbsp;&nbsp;&nbsp;↳ ${h.icono||'📂'} ${escHtml(h.nombre)}</option>`;
+      opts += `<option value="${escHtml(h.nombre)}" ${selected===h.nombre?'selected':''}>&nbsp;&nbsp;&nbsp;↳ ${escHtml(h.nombre)}</option>`;
     });
   });
   return opts;
@@ -665,21 +665,21 @@ function updateMateriaSelects(){
   raices.forEach(r=>{
     const hijos = allMaterias.filter(h=>h.parentId===r.id);
     if(hijos.length){
-      opts += `<optgroup label="${escHtml(r.icono||'📁')} ${escHtml(r.nombre)}">`;
-      hijos.forEach(h=>{ opts+=`<option value="${escHtml(h.nombre)}">　${h.icono||'📂'} ${escHtml(h.nombre)}</option>`; });
+      opts += `<optgroup label="${escHtml(r.nombre)}">`;
+      hijos.forEach(h=>{ opts+=`<option value="${escHtml(h.nombre)}">　${escHtml(h.nombre)}</option>`; });
       opts += '</optgroup>';
       // También permitir asignar a la raíz si se desea
-      opts += `<option value="${escHtml(r.nombre)}">${r.icono||'📁'} ${escHtml(r.nombre)} (raíz)</option>`;
+      opts += `<option value="${escHtml(r.nombre)}">${escHtml(r.nombre)} (raíz)</option>`;
     } else {
-      opts += `<option value="${escHtml(r.nombre)}">${r.icono||'📁'} ${escHtml(r.nombre)}</option>`;
+      opts += `<option value="${escHtml(r.nombre)}">${escHtml(r.nombre)}</option>`;
     }
   });
   ['pdf-categoria','audio-categoria'].forEach(id=>{ const s=document.getElementById(id); if(s) s.innerHTML=opts; });
   // Select de carpeta padre (solo raíces)
   const padreEl = document.getElementById('materia-padre');
   if(padreEl){
-    padreEl.innerHTML = '<option value="">📁 Raíz (sin carpeta padre)</option>' +
-      raices.map(r=>`<option value="${r.id}">${r.icono||'📁'} ${escHtml(r.nombre)}</option>`).join('');
+    padreEl.innerHTML = '<option value="">Raíz (sin carpeta padre)</option>' +
+      raices.map(r=>`<option value="${r.id}">${escHtml(r.nombre)}</option>`).join('');
   }
 }
 
@@ -687,19 +687,19 @@ function _materiaCard(m, esHijo){
   const pdfCount = allPdfs.filter(p=>p.categoria===m.nombre).length;
   const activo = m.activo !== false;
   const indent = esHijo ? 'margin-left:24px;border-left:3px solid var(--blue-l);border-radius:0 var(--radius) var(--radius) 0;' : '';
-  const icon = esHijo ? (m.icono||'📂') : (m.icono||'📁');
+  const icoClass = esHijo ? 'ti-folder' : 'ti-folders';
   return `<div style="background:var(--bg);border-radius:var(--radius);padding:14px 16px;border:2px solid ${activo?'var(--green)':'var(--border)'};${indent}display:flex;align-items:center;justify-content:space-between;gap:8px;">
-    <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
-      <span style="font-size:${esHijo?'22':'28'}px;flex-shrink:0;">${icon}</span>
+    <div style="display:flex;align-items:center;gap:11px;flex:1;min-width:0;">
+      <span style="width:${esHijo?'30':'36'}px;height:${esHijo?'30':'36'}px;border-radius:9px;background:#eff6ff;color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:${esHijo?'17':'19'}px;flex-shrink:0;"><i class="ti ${icoClass}"></i></span>
       <div style="min-width:0;">
-        <div style="font-size:${esHijo?'13':'14'}px;font-weight:700;color:${activo?'var(--navy)':'var(--text-g)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(m.nombre)}</div>
+        <div style="font-size:${esHijo?'13':'14'}px;font-weight:600;color:${activo?'var(--navy)':'var(--text-g)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(m.nombre)}</div>
         <div style="font-size:11px;color:var(--text-g);">${pdfCount} doc. · <span style="color:${activo?'var(--green)':'var(--red)'};font-weight:600;">${activo?'Visible':'Oculta'}</span>${esHijo?'<span style="margin-left:6px;color:var(--text-g);">· subcarpeta</span>':''}</div>
       </div>
     </div>
     <div style="display:flex;gap:6px;flex-shrink:0;">
-      <button class="btn-sm btn-blue" onclick="editarMateria('${m.id}')" style="padding:5px 10px;font-size:11px;">✏️</button>
-      <button class="btn-sm ${activo?'btn-gray':'btn-green'}" onclick="toggleMateria('${m.id}',${activo})" style="padding:5px 10px;font-size:11px;">${activo?'⏸ Ocultar':'▶ Activar'}</button>
-      <button class="btn-sm btn-red" onclick="eliminarMateria('${m.id}','${escJsAttr(m.nombre)}',${pdfCount},'${m.parentId||''}')" style="padding:5px 10px;font-size:11px;">✕</button>
+      <button class="btn-sm btn-blue" onclick="editarMateria('${m.id}')" style="padding:5px 9px;font-size:13px;" title="Editar"><i class="ti ti-edit"></i></button>
+      <button class="btn-sm ${activo?'btn-gray':'btn-green'}" onclick="toggleMateria('${m.id}',${activo})" style="padding:5px 10px;font-size:11px;"><i class="ti ${activo?'ti-eye-off':'ti-eye'}" style="vertical-align:-2px;margin-right:4px;"></i>${activo?'Ocultar':'Activar'}</button>
+      <button class="btn-sm btn-red" onclick="eliminarMateria('${m.id}','${escJsAttr(m.nombre)}',${pdfCount},'${m.parentId||''}')" style="padding:5px 9px;font-size:13px;" title="Eliminar"><i class="ti ti-trash"></i></button>
     </div>
   </div>
   <div id="edit-materia-${m.id}" style="display:none;background:#f0f6ff;border:1.5px solid var(--blue-l);border-radius:var(--radius);padding:12px 16px;margin-top:4px;${esHijo?'margin-left:24px;':''}">
@@ -721,7 +721,7 @@ function loadMaterias(){
   const count = document.getElementById('materias-count');
   if(!allMaterias.length){
     count.textContent='0';
-    el.innerHTML='<div class="empty-state"><div class="es-icon">📁</div><p>No hay materias aún.<br>Crea la primera carpeta arriba.</p></div>';
+    el.innerHTML='<div class="empty-state"><div class="es-icon"><i class="ti ti-folder"></i></div><p>No hay materias aún.<br>Crea la primera carpeta arriba.</p></div>';
     return;
   }
   count.textContent = allMaterias.length;
