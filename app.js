@@ -1007,12 +1007,14 @@ function _carpetaCard(m, onclick, esHijo){
   const pdfCount = allPdfs.filter(p=>p.categoria===m.nombre).length;
   const audioCount = allAudios.filter(a=>a.categoria===m.nombre).length;
   const hijos = allMaterias.filter(h=>h.parentId===m.id && h.activo!==false);
-  const subInfo = hijos.length>0 ? `📂 ${hijos.length} subcarpeta${hijos.length!==1?'s':''}` : `${pdfCount} doc.${audioCount?` · 🎵 ${audioCount}`:''}`;
-  const icono = esHijo ? (m.icono||'📂') : (m.icono||'📁');
-  return `<div onclick="${onclick}" style="background:#fff;border-radius:var(--radius);padding:${esHijo?'20px 16px':'28px 22px'};border:1px solid var(--border);box-shadow:var(--shadow);cursor:pointer;transition:var(--tr);text-align:center;" onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='var(--shadow-l)';this.style.borderColor='var(--blue-l)'" onmouseleave="this.style.transform='';this.style.boxShadow='var(--shadow)';this.style.borderColor='var(--border)'">
-    <div style="font-size:${esHijo?'36':'48'}px;margin-bottom:10px;">${icono}</div>
-    <div style="font-size:${esHijo?'13':'15'}px;font-weight:700;color:var(--navy);margin-bottom:5px;">${escHtml(m.nombre)}</div>
-    <div style="font-size:12px;color:var(--text-g);">${subInfo}</div>
+  const tieneHijos = hijos.length>0;
+  const subInfo = tieneHijos
+    ? `${hijos.length} subcarpeta${hijos.length!==1?'s':''}`
+    : `${pdfCount} documento${pdfCount!==1?'s':''}${audioCount?` · ${audioCount} audio${audioCount!==1?'s':''}`:''}`;
+  return `<div onclick="${onclick}" class="biblio-card">
+    <div class="biblio-ic"><i class="ti ${tieneHijos?'ti-folders':'ti-folder'}"></i></div>
+    <div class="biblio-card-nm">${escHtml(m.nombre)}</div>
+    <div class="biblio-card-mt">${subInfo}</div>
   </div>`;
 }
 
@@ -1106,19 +1108,23 @@ function filterLibrary(){
 
 function renderLibraryGrid(pdfs){
   const el = document.getElementById('lib-grid');
-  if(!pdfs.length){ el.innerHTML='<div class="empty-state" style="grid-column:1/-1;"><div class="es-icon">🔍</div><p>No hay documentos en esta materia.</p></div>'; return; }
+  if(!pdfs.length){ el.innerHTML='<div class="empty-state" style="grid-column:1/-1;"><div class="es-icon"><i class="ti ti-file-search"></i></div><p>No hay documentos en esta materia.</p></div>'; return; }
   el.innerHTML = pdfs.map(p=>`
-    <div style="background:#fff;border-radius:var(--radius);padding:22px;border:1px solid var(--border);box-shadow:var(--shadow);transition:var(--tr);" onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='var(--shadow-l)'" onmouseleave="this.style.transform='';this.style.boxShadow='var(--shadow)'">
-      <div style="font-size:36px;margin-bottom:12px;">📄</div>
-      <div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:6px;line-height:1.3;">${escHtml(p.nombre||'Sin nombre')}</div>
-      <div style="font-size:12px;color:var(--text-g);margin-bottom:10px;line-height:1.5;">${escHtml(p.descripcion||'')}</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
-        <span class="badge badge-blue">${escHtml(p.categoria||'Sin materia')}</span>
-        <span class="badge" style="background:#f1f5f9;color:var(--text-g);">${p.paginas||'?'} pág.</span>
+    <div class="doc-card">
+      <div class="doc-top">
+        <div class="doc-ic"><i class="ti ti-file-text"></i></div>
+        <div style="min-width:0;">
+          <div class="doc-nm">${escHtml(p.nombre||'Sin nombre')}</div>
+          <div class="doc-meta">
+            <span class="doc-chip">${escHtml(p.categoria||'Sin materia')}</span>
+            <span class="doc-pg">${p.paginas||'?'} págs.</span>
+          </div>
+        </div>
       </div>
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <button class="btn-sm btn-blue" style="width:100%;" onclick="goToConsultarWith('${p.id}')">💬 Consultar</button>
-        <button class="btn-sm" style="width:100%;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border:none;padding:8px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;" onclick="abrirCuestionario('${p.id}')">📝 Cuestionario</button>
+      ${p.descripcion?`<div style="font-size:12.5px;color:var(--text-g);line-height:1.5;margin-bottom:12px;">${escHtml(p.descripcion)}</div>`:''}
+      <div class="doc-acts">
+        <button class="doc-btn doc-btn-a" onclick="goToConsultarWith('${p.id}')"><i class="ti ti-message-2"></i>Consultar</button>
+        <button class="doc-btn doc-btn-s" onclick="abrirCuestionario('${p.id}')"><i class="ti ti-list-check"></i>Cuestionario</button>
       </div>
     </div>`).join('');
 }

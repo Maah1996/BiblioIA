@@ -12,7 +12,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-storage-compat.js"></script>
-<link rel="stylesheet" href="styles.css?v=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="styles.css?v=2">
 </head>
 <body>
 
@@ -259,28 +260,28 @@
       <div id="nav-admin" style="display:none;">
         <div class="sidebar-label">Administración</div>
         <div class="nav-item active" data-view="dashboard" onclick="goTo('dashboard')">
-          <span class="ni-icon">📊</span><span class="ni-text">Dashboard</span>
+          <span class="ni-icon"><i class="ti ti-layout-dashboard"></i></span><span class="ni-text">Dashboard</span>
         </div>
         <div class="nav-item" data-view="biblioteca-admin" onclick="goTo('biblioteca-admin')">
-          <span class="ni-icon">📚</span><span class="ni-text">Biblioteca</span>
+          <span class="ni-icon"><i class="ti ti-books"></i></span><span class="ni-text">Biblioteca</span>
         </div>
         <div class="nav-item" data-view="subir-pdf" onclick="goTo('subir-pdf')">
-          <span class="ni-icon">⬆️</span><span class="ni-text">Subir PDF</span>
+          <span class="ni-icon"><i class="ti ti-upload"></i></span><span class="ni-text">Subir PDF</span>
         </div>
         <div class="nav-item" data-view="audios-admin" onclick="goTo('audios-admin')">
-          <span class="ni-icon">🎵</span><span class="ni-text">Multimedia</span>
+          <span class="ni-icon"><i class="ti ti-music"></i></span><span class="ni-text">Multimedia</span>
         </div>
         <div class="nav-item" data-view="materias" onclick="goTo('materias')">
-          <span class="ni-icon">📁</span><span class="ni-text">Materias</span>
+          <span class="ni-icon"><i class="ti ti-folders"></i></span><span class="ni-text">Materias</span>
         </div>
         <div class="nav-item" data-view="usuarios" onclick="goTo('usuarios')">
-          <span class="ni-icon">👥</span><span class="ni-text">Usuarios</span>
+          <span class="ni-icon"><i class="ti ti-users"></i></span><span class="ni-text">Usuarios</span>
         </div>
         <div class="nav-item" data-view="banco-preguntas" onclick="goTo('banco-preguntas')">
-          <span class="ni-icon">📝</span><span class="ni-text">Cuestionarios</span>
+          <span class="ni-icon"><i class="ti ti-list-check"></i></span><span class="ni-text">Cuestionarios</span>
         </div>
         <div class="nav-item" data-view="ajustes" onclick="goTo('ajustes')">
-          <span class="ni-icon">⚙️</span><span class="ni-text">Ajustes</span>
+          <span class="ni-icon"><i class="ti ti-settings"></i></span><span class="ni-text">Ajustes</span>
         </div>
         <div style="border-top:1px solid rgba(255,255,255,.06);margin:8px 0 4px;"></div>
         <div onclick="entrarPreview()" style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:var(--radius-s);cursor:pointer;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.25);margin:0 8px 8px;transition:var(--tr);" onmouseenter="this.style.background='rgba(245,158,11,.22)'" onmouseleave="this.style.background='rgba(245,158,11,.12)'">
@@ -292,18 +293,18 @@
       <div id="nav-user">
         <div class="sidebar-label">Consultas</div>
         <div class="nav-item" data-view="biblioteca-user" onclick="goTo('biblioteca-user')">
-          <span class="ni-icon">📖</span><span class="ni-text">Biblioteca</span>
+          <span class="ni-icon"><i class="ti ti-library"></i></span><span class="ni-text">Biblioteca</span>
         </div>
         <div class="nav-item" data-view="consultar" onclick="goTo('consultar')">
-          <span class="ni-icon">💬</span><span class="ni-text">Consultar</span>
+          <span class="ni-icon"><i class="ti ti-message-2"></i></span><span class="ni-text">Consultar</span>
         </div>
         <div class="nav-item" data-view="historial" onclick="goTo('historial')">
-          <span class="ni-icon">🕐</span><span class="ni-text">Historial</span>
+          <span class="ni-icon"><i class="ti ti-history"></i></span><span class="ni-text">Historial</span>
         </div>
       </div>
       <div class="sidebar-label" style="margin-top:auto;">Cuenta</div>
       <div class="nav-item" data-view="perfil" onclick="goTo('perfil')">
-        <span class="ni-icon">👤</span><span class="ni-text">Mi perfil</span>
+        <span class="ni-icon"><i class="ti ti-user"></i></span><span class="ni-text">Mi perfil</span>
       </div>
     </nav>
 
@@ -830,6 +831,6 @@
 </div>
 
 <!-- ═══════════════════ JAVASCRIPT ════════════════════ -->
-<script src="app.js?v=1"></script>
+<script src="app.js?v=2"></script>
 </body>
 </html>
