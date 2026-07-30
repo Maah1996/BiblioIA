@@ -204,18 +204,41 @@ function goTo(view){
 }
 
 // ══ LOAD ALL DATA ═════════════════════════════════════════
+// Cuando llegan datos nuevos de Firebase, redibuja la pantalla activa si depende
+// de esos datos. Arregla la "carrera": antes la vista se pintaba antes de que
+// llegaran los datos y quedaba vacia; ahora se actualiza sola cuando llegan (y
+// tambien queda en vivo: si se sube o borra algo, la lista se refresca sola).
+function refrescarVistaActiva(){
+  const activa = document.querySelector('.view.active');
+  if(!activa) return;
+  const view = activa.id.replace(/^view-/, '');
+  if(view==='biblioteca-admin') loadAdminPdfs();
+  else if(view==='materias') loadMaterias();
+  else if(view==='consultar') loadPdfSelector();
+  else if(view==='biblioteca-user'){
+    if(currentMateria){
+      renderLibraryGrid(allPdfs.filter(p=>p.categoria===currentMateria));
+      renderAudioGrid(currentMateria);
+    } else if(document.getElementById('lib-carpetas-view')?.style.display!=='none'){
+      renderCarpetas();
+    }
+  }
+}
+
 function loadAllData(){
   db.ref(`${DB_PATH}/pdfs`).on('value', snap=>{
     allPdfs = [];
     const data = snap.val()||{};
     Object.entries(data).forEach(([id,p])=>{ if(p) allPdfs.push({id,...p}); });
     allPdfs.sort((a,b)=>new Date(b.fechaSubida||0)-new Date(a.fechaSubida||0));
+    refrescarVistaActiva();
   });
   db.ref(`${DB_PATH}/audios`).on('value', snap=>{
     allAudios = [];
     const data = snap.val()||{};
     Object.entries(data).forEach(([id,a])=>{ if(a) allAudios.push({id,...a}); });
     allAudios.sort((a,b)=>new Date(b.fechaSubida||0)-new Date(a.fechaSubida||0));
+    refrescarVistaActiva();
   });
   loadAllMaterias();
 }
@@ -655,6 +678,7 @@ function loadAllMaterias(){
     Object.entries(data).forEach(([id,m])=>{ if(m) allMaterias.push({id,...m}); });
     allMaterias.sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||''));
     updateMateriaSelects();
+    refrescarVistaActiva();
   });
 }
 
