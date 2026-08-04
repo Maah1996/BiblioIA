@@ -404,7 +404,7 @@ function setProgress(pct, label){
 }
 
 // ══ ADMIN LIBRARY ═════════════════════════════════════════
-let _pdfFiltroCategoria = '';
+let _adminCarpetaActual = null; // id de la carpeta actual en el explorador de Documentos (null = raíz)
 
 // Recorre las carpetas en orden de arbol (cada padre seguido de sus hijos, de
 // forma recursiva) devolviendo {m, depth}. depth 0 = raiz. Soporta anidado
@@ -446,25 +446,66 @@ function _buildMateriaOpts(selected=''){
 }
 
 function loadAdminPdfs(){
-  const el = document.getElementById('admin-pdf-list');
   const count = document.getElementById('admin-pdf-count');
-  if(!allPdfs.length){ el.innerHTML='<div class="empty-state"><div class="es-icon">📂</div><p>No hay documentos.<br>Sube el primer PDF.</p></div>'; count.textContent='0'; return; }
+  if(count) count.textContent = allPdfs.length;
+  _renderAdminExplorador();
+}
 
-  const pdfs = _pdfFiltroCategoria
-    ? allPdfs.filter(p=>_nombresConDescendientes(_pdfFiltroCategoria).has(p.categoria))
-    : allPdfs;
-  count.textContent = allPdfs.length;
+// PDFs archivados DIRECTAMENTE en la carpeta "nombre" (sin contar los de sus
+// subcarpetas). Si nombre es null (raíz), devuelve los huérfanos: pdfs cuya
+// categoría no coincide con ninguna carpeta existente — así nunca desaparece
+// un documento de la vista aunque su carpeta se haya borrado o renombrado.
+function _pdfsDirectosDeCarpeta(nombre){
+  if(nombre===null){
+    const nombresConocidos = new Set(allMaterias.map(m=>m.nombre));
+    return allPdfs.filter(p=>!nombresConocidos.has(p.categoria));
+  }
+  return allPdfs.filter(p=>p.categoria===nombre);
+}
 
-  el.innerHTML=`
-    <!-- Filtro por carpeta -->
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
-      <span style="font-size:12px;font-weight:600;color:var(--text-g);">📂 Filtrar:</span>
-      <select onchange="_pdfFiltroCategoria=this.value;loadAdminPdfs();"
-        style="padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;font-family:inherit;outline:none;min-width:200px;">
-        ${_buildMateriaOpts(_pdfFiltroCategoria)}
-      </select>
-      <span style="font-size:12px;color:var(--text-g);">${pdfs.length} de ${allPdfs.length} docs</span>
-    </div>
+function _adminAbrirCarpeta(id){
+  _adminCarpetaActual = id;
+  _renderAdminExplorador();
+}
+
+function _adminVolverCarpeta(){
+  const m = _adminCarpetaActual ? allMaterias.find(x=>x.id===_adminCarpetaActual) : null;
+  _adminCarpetaActual = m ? (m.parentId||null) : null;
+  _renderAdminExplorador();
+}
+
+function _adminBreadcrumbHtml(id){
+  const ruta = _rutaMateria(id);
+  let html = `<span onclick="_adminAbrirCarpeta(null)" style="cursor:pointer;font-weight:600;color:var(--blue);">📂 Documentos</span>`;
+  ruta.forEach((m,i)=>{
+    const esUltimo = i===ruta.length-1;
+    html += ` <span style="color:var(--border);">/</span> `;
+    html += esUltimo
+      ? `<span style="color:var(--text-g);">${escHtml(m.nombre)}</span>`
+      : `<span onclick="_adminAbrirCarpeta('${m.id}')" style="cursor:pointer;font-weight:600;color:var(--blue);">${escHtml(m.nombre)}</span>`;
+  });
+  return html;
+}
+
+function _adminCarpetaCard(m){
+  const docsDirectos = _pdfsDirectosDeCarpeta(m.nombre).length;
+  const hijos = allMaterias.filter(h=>h.parentId===m.id);
+  const tieneHijos = hijos.length>0;
+  const subInfo = tieneHijos
+    ? `${hijos.length} subcarpeta${hijos.length!==1?'s':''}${docsDirectos?` · ${docsDirectos} doc.`:''}`
+    : `${docsDirectos} documento${docsDirectos!==1?'s':''}`;
+  return `<div onclick="_adminAbrirCarpeta('${m.id}')" style="cursor:pointer;background:var(--bg);border:2px solid var(--border);border-radius:var(--radius);padding:16px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;transition:border-color .15s;" onmouseover="this.style.borderColor='var(--blue)'" onmouseout="this.style.borderColor='var(--border)'">
+    <span style="width:44px;height:44px;border-radius:12px;background:#eff6ff;color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:22px;"><i class="ti ${tieneHijos?'ti-folders':'ti-folder'}"></i></span>
+    <div style="font-size:13px;font-weight:600;color:var(--navy);word-break:break-word;">${escHtml(m.nombre)}</div>
+    <div style="font-size:11px;color:var(--text-g);">${subInfo}</div>
+  </div>`;
+}
+
+function _adminPdfTablaHtml(pdfs, dentroDeCarpeta){
+  const titulo = dentroDeCarpeta
+    ? `<div style="font-size:12px;font-weight:600;color:var(--text-g);margin:0 0 10px;">📄 Documentos en esta carpeta (${pdfs.length})</div>`
+    : '';
+  return `${titulo}
     <div class="bulk-bar" id="pdf-bulk-bar">
       <input type="checkbox" class="row-cb" id="cb-all-pdfs" onchange="toggleAllPdfs(this.checked)" title="Seleccionar todos">
       <span style="font-size:13px;font-weight:600;color:var(--blue);" id="pdf-sel-count">0 seleccionados</span>
@@ -501,6 +542,42 @@ function loadAdminPdfs(){
     </tbody></table>`;
 }
 
+// Explorador de carpetas de Documentos (admin): tarjetas de subcarpetas +
+// documentos archivados directamente en la carpeta actual. Clic en una
+// tarjeta entra a esa carpeta; soporta anidado ilimitado igual que la
+// Biblioteca del usuario y "Mover carpetas" en Materias.
+function _renderAdminExplorador(){
+  const el = document.getElementById('admin-pdf-list');
+  if(!el) return;
+  let m = _adminCarpetaActual ? allMaterias.find(x=>x.id===_adminCarpetaActual) : null;
+  if(_adminCarpetaActual && !m){ _adminCarpetaActual=null; m=null; } // la carpeta ya no existe (borrada) -> vuelve a raíz
+
+  const subcarpetas = allMaterias.filter(h=>(h.parentId||null)===_adminCarpetaActual);
+  const pdfsAqui = _pdfsDirectosDeCarpeta(m ? m.nombre : null);
+
+  let html = '';
+  if(m){
+    html += `<div style="font-size:13px;margin-bottom:12px;">${_adminBreadcrumbHtml(_adminCarpetaActual)}</div>`;
+    html += `<button onclick="_adminVolverCarpeta()" style="display:inline-flex;align-items:center;gap:8px;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-s);padding:7px 14px;font-size:12px;font-weight:600;color:var(--navy);cursor:pointer;margin-bottom:14px;">← Volver</button>`;
+  }
+
+  if(subcarpetas.length){
+    html += `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px;margin-bottom:${pdfsAqui.length?'24px':'4px'};">`;
+    html += subcarpetas.map(h=>_adminCarpetaCard(h)).join('');
+    html += `</div>`;
+  }
+
+  if(!subcarpetas.length && !pdfsAqui.length){
+    html += `<div class="empty-state"><div class="es-icon">📂</div><p>${m?`No hay documentos en "${escHtml(m.nombre)}".`:'No hay documentos aún.<br>Sube el primero.'}</p></div>`;
+    el.innerHTML = html;
+    return;
+  }
+
+  if(pdfsAqui.length) html += _adminPdfTablaHtml(pdfsAqui, !!m);
+
+  el.innerHTML = html;
+}
+
 async function moverPdf(pdfId, nuevaCat, selectEl){
   if(!nuevaCat){ showToast('Selecciona una carpeta destino.','red'); return; }
   try{
@@ -511,7 +588,7 @@ async function moverPdf(pdfId, nuevaCat, selectEl){
     if(selectEl) selectEl.style.borderColor='var(--green)';
     setTimeout(()=>{ if(selectEl) selectEl.style.borderColor=''; }, 1200);
     showToast('Movido a "'+nuevaCat+'" ✓','green');
-    if(_pdfFiltroCategoria) loadAdminPdfs(); // re-filtrar si hay filtro activo
+    _renderAdminExplorador(); // refresca: el doc puede haber salido de la carpeta actual
   } catch(e){ showToast('Error: '+e.message,'red'); }
 }
 
