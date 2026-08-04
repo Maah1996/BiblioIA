@@ -420,6 +420,21 @@ function _materiasEnOrden(parentId=null, depth=0){
   return out;
 }
 
+// Nombres de la carpeta "nombreCarpeta" + todas sus subcarpetas (a cualquier
+// profundidad). Sirve para que filtrar por una carpeta padre tambien
+// encuentre los documentos/audios archivados en sus subcarpetas — antes el
+// filtro comparaba el nombre de forma exacta y una carpeta padre sin
+// documentos propios mostraba "0" aunque sus hijas tuvieran material.
+function _nombresConDescendientes(nombreCarpeta){
+  const raiz = allMaterias.find(m=>m.nombre===nombreCarpeta);
+  if(!raiz) return new Set([nombreCarpeta]);
+  const nombres = new Set([raiz.nombre]);
+  (function recorrer(id){
+    allMaterias.filter(h=>h.parentId===id).forEach(h=>{ nombres.add(h.nombre); recorrer(h.id); });
+  })(raiz.id);
+  return nombres;
+}
+
 function _buildMateriaOpts(selected=''){
   // Opciones jerarquicas: arbol completo, indentado por nivel
   let opts = '<option value="">— Todas las carpetas —</option>';
@@ -436,7 +451,7 @@ function loadAdminPdfs(){
   if(!allPdfs.length){ el.innerHTML='<div class="empty-state"><div class="es-icon">📂</div><p>No hay documentos.<br>Sube el primer PDF.</p></div>'; count.textContent='0'; return; }
 
   const pdfs = _pdfFiltroCategoria
-    ? allPdfs.filter(p=>p.categoria===_pdfFiltroCategoria)
+    ? allPdfs.filter(p=>_nombresConDescendientes(_pdfFiltroCategoria).has(p.categoria))
     : allPdfs;
   count.textContent = allPdfs.length;
 
@@ -1269,7 +1284,7 @@ function loadPdfSelector(){
 
 function filtrarPdfsPorCarpeta(){
   const carpeta = (document.getElementById('consultar-carpeta')?.value)||'';
-  const pdfs = carpeta ? allPdfs.filter(p=>p.categoria===carpeta) : allPdfs;
+  const pdfs = carpeta ? allPdfs.filter(p=>_nombresConDescendientes(carpeta).has(p.categoria)) : allPdfs;
   renderPdfSelectorList(pdfs);
 }
 
