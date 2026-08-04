@@ -1027,10 +1027,10 @@ function loadUserLibrary(){
   volverCarpetas();
 }
 
-function _carpetaCard(m, onclick, esHijo){
+function _carpetaCard(m, onclick){
   const pdfCount = allPdfs.filter(p=>p.categoria===m.nombre).length;
   const audioCount = allAudios.filter(a=>a.categoria===m.nombre).length;
-  const hijos = allMaterias.filter(h=>h.parentId===m.id && h.activo!==false);
+  const hijos = allMaterias.filter(h=>h.parentId===m.id && h.activo!==false && _carpetaPermitida(h));
   const tieneHijos = hijos.length>0;
   const subInfo = tieneHijos
     ? `${hijos.length} subcarpeta${hijos.length!==1?'s':''}`
@@ -1042,16 +1042,22 @@ function _carpetaCard(m, onclick, esHijo){
   </div>`;
 }
 
+// ¿Tiene m (en cualquier profundidad) algún descendiente permitido? Sirve para
+// que una carpeta intermedia sea navegable aunque solo un nieto suyo esté
+// autorizado explícitamente.
+function _tieneDescendientePermitido(id){
+  return allMaterias.some(h=>h.parentId===id &&
+    (userCarpetasPermitidas.includes(h.id) || _tieneDescendientePermitido(h.id)));
+}
+
 function _carpetaPermitida(m){
   // Admin o sin restricción → todas visibles
   if(isAdmin || !userCarpetasPermitidas) return true;
-  const ids = userCarpetasPermitidas;
-  // Raíz permitida directamente
-  if(ids.includes(m.id)) return true;
-  // Raíz con al menos una subcarpeta permitida
-  if(!m.parentId) return allMaterias.some(h=>h.parentId===m.id && ids.includes(h.id));
-  // Subcarpeta permitida
-  return false;
+  // Permitida directamente
+  if(userCarpetasPermitidas.includes(m.id)) return true;
+  // O tiene algún descendiente permitido a cualquier profundidad (hay que
+  // poder atravesarla para llegar a él)
+  return _tieneDescendientePermitido(m.id);
 }
 
 function renderCarpetas(){
@@ -1061,56 +1067,75 @@ function renderCarpetas(){
     el.innerHTML='<div class="empty-state" style="grid-column:1/-1;"><div class="es-icon">📂</div><p>No hay materias disponibles aún.</p></div>';
     return;
   }
-  el.innerHTML = raices.map(m=>_carpetaCard(m, `abrirMateria('${m.id}')`, false)).join('');
+  el.innerHTML = raices.map(m=>_carpetaCard(m, `abrirCarpeta('${m.id}')`)).join('');
 }
 
-function abrirMateria(id){
+// Devuelve la ruta desde la raíz hasta la carpeta id (inclusive), para el breadcrumb
+function _rutaMateria(id){
+  const ruta = [];
+  let cur = id ? allMaterias.find(x=>x.id===id) : null;
+  while(cur){
+    ruta.unshift(cur);
+    cur = cur.parentId ? allMaterias.find(x=>x.id===cur.parentId) : null;
+  }
+  return ruta;
+}
+
+function _renderBreadcrumb(id){
+  const el = document.getElementById('lib-breadcrumb');
+  if(!el) return;
+  const ruta = _rutaMateria(id);
+  if(!ruta.length){ el.style.display='none'; el.innerHTML=''; return; }
+  el.style.display='';
+  let html = `<span onclick="volverCarpetas()" style="cursor:pointer;font-weight:600;color:var(--blue);">Biblioteca</span>`;
+  ruta.forEach((m,i)=>{
+    const esUltimo = i===ruta.length-1;
+    html += ` <span style="color:var(--border);">/</span> `;
+    html += esUltimo
+      ? `<span style="color:var(--text-g);">${escHtml(m.nombre)}</span>`
+      : `<span onclick="abrirCarpeta('${m.id}')" style="cursor:pointer;font-weight:600;color:var(--blue);">${escHtml(m.nombre)}</span>`;
+  });
+  el.innerHTML = html;
+}
+
+// Navega a la carpeta id: si tiene subcarpetas visibles las muestra, si no
+// muestra sus documentos/audios. Soporta anidado ilimitado — el botón
+// "Volver" y el breadcrumb apuntan siempre al padre real de la carpeta.
+function abrirCarpeta(id){
   const m = allMaterias.find(x=>x.id===id);
   if(!m) return;
-  let hijos = allMaterias.filter(h=>h.parentId===id && h.activo!==false && _carpetaPermitida(h));
+  const hijos = allMaterias.filter(h=>h.parentId===id && h.activo!==false && _carpetaPermitida(h));
+  _renderBreadcrumb(id);
+
   if(hijos.length>0){
-    // Mostrar subcarpetas
     currentMateria = null;
     document.getElementById('lib-titulo').textContent = m.nombre;
     document.getElementById('lib-subtitulo').textContent = 'Selecciona una subcarpeta';
     document.getElementById('lib-carpetas-view').style.display='';
     document.getElementById('lib-pdfs-view').style.display='none';
     const el = document.getElementById('lib-carpetas-grid');
+    const volverA = m.parentId ? `abrirCarpeta('${m.parentId}')` : 'volverCarpetas()';
     el.innerHTML =
       `<div style="grid-column:1/-1;margin-bottom:4px;">
-        <button onclick="volverCarpetas()" style="display:inline-flex;align-items:center;gap:8px;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-s);padding:8px 16px;font-size:13px;font-weight:600;color:var(--navy);cursor:pointer;">← Volver a carpetas</button>
+        <button onclick="${volverA}" style="display:inline-flex;align-items:center;gap:8px;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-s);padding:8px 16px;font-size:13px;font-weight:600;color:var(--navy);cursor:pointer;">← Volver</button>
       </div>` +
-      hijos.map(h=>_carpetaCard(h, `abrirSubcarpeta('${h.id}')`, true)).join('');
+      hijos.map(h=>_carpetaCard(h, `abrirCarpeta('${h.id}')`)).join('');
   } else {
-    // Abrir PDFs directamente
     currentMateria = m.nombre;
     currentLibTab = 'pdfs';
     document.getElementById('lib-titulo').textContent = m.nombre;
-    document.getElementById('lib-subtitulo').textContent = 'Documentos y audios de esta materia';
+    document.getElementById('lib-subtitulo').textContent = 'Documentos y audios de esta carpeta';
     document.getElementById('lib-carpetas-view').style.display='none';
     document.getElementById('lib-pdfs-view').style.display='';
     const btn = document.getElementById('lib-volver-btn');
-    if(btn){ btn.textContent='← Volver a carpetas'; btn.onclick=volverCarpetas; }
+    if(btn){
+      btn.textContent='← Volver';
+      btn.onclick = m.parentId ? ()=>abrirCarpeta(m.parentId) : volverCarpetas;
+    }
     switchLibTab('pdfs');
     renderLibraryGrid(allPdfs.filter(p=>p.categoria===m.nombre));
     renderAudioGrid(m.nombre);
   }
-}
-
-function abrirSubcarpeta(id){
-  const h = allMaterias.find(x=>x.id===id);
-  if(!h) return;
-  currentMateria = h.nombre;
-  currentLibTab = 'pdfs';
-  document.getElementById('lib-titulo').textContent = h.nombre;
-  document.getElementById('lib-subtitulo').textContent = 'Documentos y audios de esta subcarpeta';
-  document.getElementById('lib-carpetas-view').style.display='none';
-  document.getElementById('lib-pdfs-view').style.display='';
-  const btn = document.getElementById('lib-volver-btn');
-  if(btn){ btn.textContent='← Volver a subcarpetas'; btn.onclick=()=>abrirMateria(h.parentId); }
-  switchLibTab('pdfs');
-  renderLibraryGrid(allPdfs.filter(p=>p.categoria===h.nombre));
-  renderAudioGrid(h.nombre);
 }
 
 function volverCarpetas(){
@@ -1121,6 +1146,7 @@ function volverCarpetas(){
   document.getElementById('lib-pdfs-view').style.display='none';
   const searchEl = document.getElementById('lib-search');
   if(searchEl) searchEl.value='';
+  _renderBreadcrumb(null);
   renderCarpetas();
 }
 
