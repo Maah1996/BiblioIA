@@ -718,20 +718,21 @@ async function abrirAccesoCarpetas(uid, nombre){
   const snap = await db.ref(`${DB_PATH}/usuarios/${uid}/carpetasPermitidas`).once('value');
   const permitidas = snap.val() || [];
 
-  // Construir checkboxes jerárquicos
+  // Construir checkboxes jerárquicos — raíz + TODAS sus subcarpetas a
+  // cualquier profundidad (antes solo mostraba un nivel de subcarpetas, así
+  // que una carpeta de 3er nivel o más nunca aparecía para marcarla)
   const raices = allMaterias.filter(m=>!m.parentId);
   let html = '';
   raices.forEach(r=>{
-    const hijos = allMaterias.filter(h=>h.parentId===r.id);
     html += `<div style="background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:10px 14px;min-width:200px;">
       <label style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:var(--navy);cursor:pointer;">
         <input type="checkbox" class="acceso-check" value="${r.id}" ${permitidas.includes(r.id)?'checked':''} style="width:16px;height:16px;">
         ${r.icono||'📁'} ${escHtml(r.nombre)}
       </label>`;
-    hijos.forEach(h=>{
-      html += `<label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text);cursor:pointer;margin-top:6px;padding-left:12px;">
-        <input type="checkbox" class="acceso-check" value="${h.id}" ${permitidas.includes(h.id)?'checked':''} style="width:14px;height:14px;">
-        ↳ ${h.icono||'📂'} ${escHtml(h.nombre)}
+    _materiasEnOrden(r.id).forEach(({m,depth})=>{
+      html += `<label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text);cursor:pointer;margin-top:6px;padding-left:${12+depth*16}px;">
+        <input type="checkbox" class="acceso-check" value="${m.id}" ${permitidas.includes(m.id)?'checked':''} style="width:14px;height:14px;">
+        ↳ ${m.icono||'📂'} ${escHtml(m.nombre)}
       </label>`;
     });
     html += '</div>';
