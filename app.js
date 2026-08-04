@@ -1244,8 +1244,9 @@ async function sendQuery(){
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 2000,
+        model: 'claude-sonnet-5',
+        max_tokens: 2600,
+        thinking: { type: 'disabled' },
         stream: true,
         system: SYSTEM_PROMPT,
         messages: [{
@@ -1758,7 +1759,7 @@ ${textSection}`;
       method:'POST',
       signal: controller.signal,
       headers:{'Content-Type':'application/json','x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01'},
-      body: JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2500,messages:[{role:'user',content:prompt}]})
+      body: JSON.stringify({model:'claude-sonnet-5',max_tokens:3200,thinking:{type:'disabled'},messages:[{role:'user',content:prompt}]})
     });
   } catch(fetchErr){
     if(fetchErr.name==='AbortError') throw new Error('La IA tardó demasiado (>90s). Intenta de nuevo.');
