@@ -1,0 +1,88 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "biblioteca_maah": {
+      ".read": false,
+      ".write": false,
+
+      "config": {
+        "claudeKey": {
+          ".read": "auth != null && auth.token.email === 'marcoaraya1973@gmail.com'",
+          ".write": "auth != null && auth.token.email === 'marcoaraya1973@gmail.com'"
+        }
+      },
+
+      "usuarios": {
+        ".read": "auth != null && auth.token.email === 'marcoaraya1973@gmail.com'",
+
+        "$uid": {
+          ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'marcoaraya1973@gmail.com')",
+
+          ".write": "auth != null && (auth.token.email === 'marcoaraya1973@gmail.com' || (auth.uid === $uid && !data.exists()))",
+
+          "nombre": {
+            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 120"
+          },
+          "email": {
+            ".validate": "newData.isString() && newData.val() === auth.token.email"
+          },
+          "fechaRegistro": {
+            ".validate": "newData.isString()"
+          },
+          "plan": {
+            ".validate": "auth.token.email === 'marcoaraya1973@gmail.com' ? (newData.val() === 'activo' || newData.val() === 'inactivo') : newData.val() === 'inactivo'"
+          },
+          "rol": {
+            ".validate": "newData.val() === 'usuario' || (newData.val() === 'admin' && auth.token.email === 'marcoaraya1973@gmail.com')"
+          },
+          "consultas": {
+            ".validate": "newData.isNumber()",
+            ".write": "auth != null && ((auth.uid === $uid && !data.exists() && newData.val() === 0) || (auth.uid === $uid && data.exists() && newData.val() === data.val() + 1) || auth.token.email === 'marcoaraya1973@gmail.com')"
+          },
+          "carpetasPermitidas": {
+            ".write": "auth != null && auth.token.email === 'marcoaraya1973@gmail.com'"
+          }
+        }
+      },
+
+      "materias": {
+        ".read": "auth != null && (root.child('biblioteca_maah/usuarios/'+auth.uid+'/plan').val() === 'activo' || auth.token.email === 'marcoaraya1973@gmail.com')",
+        ".write": "auth != null && auth.token.email === 'marcoaraya1973@gmail.com'"
+      },
+
+      "pdfs": {
+        ".read": "auth != null && (root.child('biblioteca_maah/usuarios/'+auth.uid+'/plan').val() === 'activo' || auth.token.email === 'marcoaraya1973@gmail.com')",
+        ".write": "auth != null && auth.token.email === 'marcoaraya1973@gmail.com'"
+      },
+
+      "audios": {
+        ".read": "auth != null && (root.child('biblioteca_maah/usuarios/'+auth.uid+'/plan').val() === 'activo' || auth.token.email === 'marcoaraya1973@gmail.com')",
+        ".write": "auth != null && auth.token.email === 'marcoaraya1973@gmail.com'"
+      },
+
+      "cuestionarios": {
+        ".read": "auth != null && (root.child('biblioteca_maah/usuarios/'+auth.uid+'/plan').val() === 'activo' || auth.token.email === 'marcoaraya1973@gmail.com')",
+        ".write": "auth != null && auth.token.email === 'marcoaraya1973@gmail.com'",
+
+        "$pdfId": {
+          "preguntas": {
+            "$qId": {
+              ".write": "auth != null && ((root.child('biblioteca_maah/usuarios/'+auth.uid+'/plan').val() === 'activo' && !data.exists() && newData.hasChildren(['pregunta','alternativas','correcta'])) || auth.token.email === 'marcoaraya1973@gmail.com')"
+            }
+          }
+        }
+      },
+
+      "consultas": {
+        ".read": "auth != null && auth.token.email === 'marcoaraya1973@gmail.com'",
+
+        "$uid": {
+          ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'marcoaraya1973@gmail.com')",
+          ".write": "auth != null && (auth.uid === $uid || auth.token.email === 'marcoaraya1973@gmail.com')"
+        }
+      }
+    }
+  }
+}
