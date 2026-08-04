@@ -681,6 +681,7 @@ async function toggleUserPlan(uid, currentPlan){
 
 // ══ MATERIAS (admin) ══════════════════════════════════════
 let allMaterias = [];
+let materiasSeleccionadas = new Set(); // ids marcados con checkbox para mover en lote
 
 function loadAllMaterias(){
   db.ref(`${DB_PATH}/materias`).on('value', snap=>{
@@ -705,9 +706,16 @@ function updateMateriaSelects(){
   // Select de carpeta padre: cualquier carpeta puede ser madre (anidado ilimitado)
   const padreEl = document.getElementById('materia-padre');
   if(padreEl){
-    padreEl.innerHTML = '<option value="">Raíz (sin carpeta padre)</option>' +
-      enOrden.map(({m,depth})=>`<option value="${m.id}">${'　'.repeat(depth)}${depth>0?'↳ ':''}${escHtml(m.nombre)}</option>`).join('');
+    padreEl.innerHTML = '<option value="">Raíz (sin carpeta padre)</option>' + _buildDestinoOpts(enOrden);
   }
+  // Select de destino para mover carpetas en lote (misma lista jerarquica)
+  const moverDestEl = document.getElementById('materias-mover-destino');
+  if(moverDestEl) moverDestEl.innerHTML = '<option value="">📁 Raíz (sin carpeta padre)</option>' + _buildDestinoOpts(enOrden);
+}
+
+// Lista jerarquica de <option> (id como value) para selects de carpeta padre / destino
+function _buildDestinoOpts(enOrden){
+  return enOrden.map(({m,depth})=>`<option value="${m.id}">${'　'.repeat(depth)}${depth>0?'↳ ':''}${escHtml(m.nombre)}</option>`).join('');
 }
 
 function _materiaCard(m, depth=0){
@@ -719,6 +727,7 @@ function _materiaCard(m, depth=0){
   const icoClass = tieneHijos ? 'ti-folders' : 'ti-folder';
   return `<div style="background:var(--bg);border-radius:var(--radius);padding:14px 16px;border:2px solid ${activo?'var(--green)':'var(--border)'};${indent}display:flex;align-items:center;justify-content:space-between;gap:8px;">
     <div style="display:flex;align-items:center;gap:11px;flex:1;min-width:0;">
+      <input type="checkbox" id="chk-materia-${m.id}" ${materiasSeleccionadas.has(m.id)?'checked':''} onchange="toggleMateriaSeleccion('${m.id}', this.checked)" style="width:18px;height:18px;flex-shrink:0;cursor:pointer;accent-color:var(--blue);" title="Seleccionar para mover en lote">
       <span style="width:${esHijo?'30':'36'}px;height:${esHijo?'30':'36'}px;border-radius:9px;background:#eff6ff;color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:${esHijo?'17':'19'}px;flex-shrink:0;"><i class="ti ${icoClass}"></i></span>
       <div style="min-width:0;">
         <div style="font-size:${esHijo?'13':'14'}px;font-weight:600;color:${activo?'var(--navy)':'var(--text-g)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(m.nombre)}</div>
@@ -758,6 +767,66 @@ function loadMaterias(){
   _materiasEnOrden().forEach(({m,depth})=>{ html += _materiaCard(m, depth); });
   html += '</div>';
   el.innerHTML = html;
+}
+
+// ── Mover carpetas en lote (checkbox + destino) ─────────────
+function toggleMateriaSeleccion(id, checked){
+  if(checked) materiasSeleccionadas.add(id); else materiasSeleccionadas.delete(id);
+  _actualizarBarraMover();
+}
+
+function seleccionarTodasMaterias(){
+  allMaterias.forEach(m=>materiasSeleccionadas.add(m.id));
+  loadMaterias();
+  _actualizarBarraMover();
+}
+
+function deseleccionarTodasMaterias(){
+  materiasSeleccionadas.clear();
+  loadMaterias();
+  _actualizarBarraMover();
+}
+
+function _actualizarBarraMover(){
+  const bar = document.getElementById('materias-mover-bar');
+  if(!bar) return;
+  const n = materiasSeleccionadas.size;
+  if(n===0){ bar.style.display='none'; return; }
+  bar.style.display='flex';
+  const countEl = document.getElementById('materias-mover-count');
+  if(countEl) countEl.textContent = n;
+}
+
+// ¿targetId es rootId mismo o un descendiente suyo (a cualquier profundidad)?
+// Sirve para no permitir mover una carpeta dentro de sí misma o de su propia subcarpeta.
+function _idEnSubarbol(rootId, targetId){
+  if(rootId===targetId) return true;
+  return allMaterias.filter(m=>m.parentId===rootId).some(h=>_idEnSubarbol(h.id, targetId));
+}
+
+async function moverMateriasSeleccionadas(){
+  const destino = document.getElementById('materias-mover-destino').value || null;
+  if(!materiasSeleccionadas.size){ showToast('No hay carpetas seleccionadas.','red'); return; }
+
+  const updates = {};
+  let movidas = 0, omitidas = 0;
+  materiasSeleccionadas.forEach(id=>{
+    // Invalida: mover una carpeta dentro de sí misma o dentro de su propia subcarpeta (ciclo)
+    if(destino && _idEnSubarbol(id, destino)){ omitidas++; return; }
+    updates[`${DB_PATH}/materias/${id}/parentId`] = destino; // null = queda en la raíz
+    movidas++;
+  });
+
+  if(movidas===0){ showToast('Ninguna se pudo mover: el destino elegido está dentro de las carpetas seleccionadas.','red'); return; }
+
+  try{
+    await db.ref().update(updates);
+    materiasSeleccionadas.clear();
+    _actualizarBarraMover();
+    showToast(`${movidas} carpeta${movidas!==1?'s':''} movida${movidas!==1?'s':''} ✓${omitidas?` (${omitidas} omitida${omitidas!==1?'s':''}: destino inválido)`:''}`, 'green');
+  } catch(e){
+    showToast('Error al mover: '+e.message,'red');
+  }
 }
 
 async function crearMateria(){

@@ -477,7 +477,21 @@
           </div>
         </div>
         <div class="card">
-          <div class="card-title">📂 Carpetas creadas (<span id="materias-count">0</span>)</div>
+          <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+            <span>📂 Carpetas creadas (<span id="materias-count">0</span>)</span>
+            <span style="display:flex;gap:8px;">
+              <button class="btn-sm btn-gray" onclick="seleccionarTodasMaterias()" style="padding:5px 10px;font-size:12px;">☑️ Seleccionar todas</button>
+              <button class="btn-sm btn-gray" onclick="deseleccionarTodasMaterias()" style="padding:5px 10px;font-size:12px;">Ninguna</button>
+            </span>
+          </div>
+          <div id="materias-mover-bar" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;background:#f0f6ff;border:1.5px solid var(--blue-l);border-radius:var(--radius);padding:12px 16px;margin-bottom:12px;">
+            <span style="font-size:13px;font-weight:600;color:var(--navy);white-space:nowrap;"><span id="materias-mover-count">0</span> carpeta(s) seleccionada(s)</span>
+            <select id="materias-mover-destino" style="flex:1;min-width:180px;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;outline:none;">
+              <option value="">📁 Raíz (sin carpeta padre)</option>
+            </select>
+            <button class="btn-sm btn-blue" onclick="moverMateriasSeleccionadas()" style="padding:8px 16px;font-size:13px;white-space:nowrap;">📤 Mover aquí</button>
+            <button class="btn-sm btn-gray" onclick="deseleccionarTodasMaterias()" style="padding:8px 12px;font-size:13px;">✕ Cancelar</button>
+          </div>
           <div id="materias-list"><div class="empty-state"><div class="es-icon">📁</div><p>No hay materias aún.<br>Crea la primera carpeta arriba.</p></div></div>
         </div>
       </div>
@@ -833,6 +847,6 @@
 </div>
 
 <!-- ═══════════════════ JAVASCRIPT ════════════════════ -->
-<script src="app.js?v=7"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>
