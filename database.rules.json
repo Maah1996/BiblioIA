@@ -57,6 +57,11 @@
         ".write": "auth != null && auth.token.email === 'marcoaraya1973@gmail.com'"
       },
 
+      "pdfs_texto": {
+        ".read": "auth != null && (root.child('biblioteca_maah/usuarios/'+auth.uid+'/plan').val() === 'activo' || auth.token.email === 'marcoaraya1973@gmail.com')",
+        ".write": "auth != null && auth.token.email === 'marcoaraya1973@gmail.com'"
+      },
+
       "audios": {
         ".read": "auth != null && (root.child('biblioteca_maah/usuarios/'+auth.uid+'/plan').val() === 'activo' || auth.token.email === 'marcoaraya1973@gmail.com')",
         ".write": "auth != null && auth.token.email === 'marcoaraya1973@gmail.com'"

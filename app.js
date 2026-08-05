@@ -275,6 +275,43 @@ function loadDashboard(){
   });
 }
 
+// ══ MIGRACIÓN: mover texto de PDFs viejos a pdfs_texto ═════
+// HERRAMIENTA TEMPORAL (quitar tras confirmar que la biblioteca migró entera).
+// Los PDFs subidos ANTES de este cambio todavía tienen su texto embebido en
+// pdfs/{id}/texto, que es justo lo que hacía lenta la app (se descarga entero
+// cada vez que algo cambia en la biblioteca). Esta función copia ese texto a
+// pdfs_texto/{id} y lo saca de pdfs/{id}. Es segura de correr varias veces:
+// si un documento ya no tiene "texto" en pdfs/{id}, se salta.
+async function migrarTextosPdfs(){
+  if(!confirm('Esto mueve el texto de los PDFs antiguos a un nodo aparte para acelerar la app.\n\nEs seguro (no se pierde nada) y se puede ejecutar más de una vez.\n\n¿Continuar?')) return;
+  const btn = document.getElementById('btn-migrar-texto');
+  if(btn){ btn.disabled=true; btn.textContent='Migrando...'; }
+  try{
+    const snap = await db.ref(`${DB_PATH}/pdfs`).once('value');
+    const data = snap.val()||{};
+    const idsConTexto = Object.keys(data).filter(id=>data[id] && data[id].texto);
+    let movidos=0;
+    for(const id of idsConTexto){
+      const yaExiste = (await db.ref(`${DB_PATH}/pdfs_texto/${id}`).once('value')).exists();
+      const updates = {};
+      if(!yaExiste) updates[`pdfs_texto/${id}`] = data[id].texto;
+      updates[`pdfs/${id}/texto`] = null; // solo borra el campo texto, no el resto del documento
+      await db.ref(DB_PATH).update(updates);
+      movidos++;
+    }
+    if(movidos===0){
+      showToast('Nada que migrar — todos los PDFs ya están al día. ✓','green');
+    } else {
+      showToast(`Migración completa: ${movidos} documento${movidos!==1?'s':''} movido${movidos!==1?'s':''}. La app debería sentirse más rápida ahora.`,'green');
+    }
+  } catch(e){
+    console.error(e);
+    showToast('Error en la migración: '+e.message,'red');
+  } finally {
+    if(btn){ btn.disabled=false; btn.textContent='🔧 Migrar texto de PDFs antiguos'; }
+  }
+}
+
 // ══ PDF UPLOAD (multi-archivo) ════════════════════════════
 let selectedFiles = []; // array de {file, nombre}
 
@@ -371,7 +408,13 @@ async function uploadPDF(){
       }
       setProgress(92, `[${i+1}/${selectedFiles.length}] Guardando "${nombre}"...`);
       const newRef = db.ref(`${DB_PATH}/pdfs`).push();
-      await newRef.set({ id: newRef.key, nombre, categoria: cat, descripcion:'', paginas: totalPages, fechaSubida: new Date().toISOString(), subidoPor: currentUser.email, texto: textos });
+      // El texto extraído vive en un nodo aparte (pdfs_texto), NO dentro de pdfs/{id}.
+      // Motivo: la lista principal (allPdfs) se escucha entera con .on('value') para que
+      // la biblioteca quede "en vivo" — si el texto viajara ahí, cada pantalla tendría que
+      // descargar y mantener en memoria el texto completo de TODOS los PDFs. Guardándolo
+      // aparte, solo se lee bajo demanda (Consultar, Cuestionario, Revisar respuestas).
+      await newRef.set({ id: newRef.key, nombre, categoria: cat, descripcion:'', paginas: totalPages, fechaSubida: new Date().toISOString(), subidoPor: currentUser.email });
+      await db.ref(`${DB_PATH}/pdfs_texto/${newRef.key}`).set(textos);
       setFileStatus(i,'✅');
       ok++;
     } catch(e){
@@ -637,7 +680,10 @@ async function deleteSelectedPdfs(){
     msg: `Se eliminarán:<br><br><strong>${nombres.map(n=>`• ${escHtml(n)}`).join('<br>')}</strong><br><br>Esta acción no se puede deshacer.`,
     okLabel:'Eliminar todo',
     onOk: async()=>{
-      for(const id of ids) await db.ref(`${DB_PATH}/pdfs/${id}`).remove();
+      for(const id of ids){
+        await db.ref(`${DB_PATH}/pdfs/${id}`).remove();
+        await db.ref(`${DB_PATH}/pdfs_texto/${id}`).remove();
+      }
       showToast(`${ids.length} documento${ids.length!==1?'s':''} eliminado${ids.length!==1?'s':''}.`,'green');
     }
   });
@@ -672,6 +718,7 @@ async function deletePdf(id, nombre){
     okLabel:'Eliminar',
     onOk: async()=>{
       await db.ref(`${DB_PATH}/pdfs/${id}`).remove();
+      await db.ref(`${DB_PATH}/pdfs_texto/${id}`).remove();
       showToast('Documento eliminado.','green');
     }
   });
@@ -1497,6 +1544,24 @@ async function sendQuery(){
   btn.disabled=false;
 }
 
+// ══ TEXTO DE PDFs (nodo separado pdfs_texto) ═══════════════
+// El texto vive en pdfs_texto/{id} (objeto {paginaIdx: texto}). Se mantiene un
+// fallback al path viejo pdfs/{id}/texto por si algún documento aún no fue
+// migrado (ver migrarTextosPdfs) — así nunca se rompe una consulta o un
+// cuestionario mientras dura la migración.
+async function _leerTextoCompleto(pdfId){
+  const snap = await db.ref(`${DB_PATH}/pdfs_texto/${pdfId}`).once('value');
+  if(snap.exists()) return snap.val()||{};
+  const legacy = await db.ref(`${DB_PATH}/pdfs/${pdfId}/texto`).once('value');
+  return legacy.val()||{};
+}
+async function _leerTextoPagina(pdfId, pageIdx){
+  const snap = await db.ref(`${DB_PATH}/pdfs_texto/${pdfId}/${pageIdx}`).once('value');
+  if(snap.exists()) return snap.val();
+  const legacy = await db.ref(`${DB_PATH}/pdfs/${pdfId}/texto/${pageIdx}`).once('value');
+  return legacy.val();
+}
+
 async function buildContext(pdfIds){
   const MAX_TOTAL = 12000;
   let ctx = '';
@@ -1508,8 +1573,7 @@ async function buildContext(pdfIds){
     block += `DOCUMENTO: "${pdf.nombre}"\n`;
     block += `Categoría: ${pdf.categoria||'—'} | Total páginas: ${pdf.paginas||'?'}\n`;
     block += `══════════════════════════════\n`;
-    const snap = await db.ref(`${DB_PATH}/pdfs/${id}/texto`).once('value');
-    const textos = snap.val()||{};
+    const textos = await _leerTextoCompleto(id);
     let pdfText = '';
     Object.entries(textos).forEach(([idx,txt])=>{
       pdfText += `[PÁGINA ${parseInt(idx)+1}]\n${txt}\n\n`;
@@ -1812,8 +1876,7 @@ async function loadCuestionario(targetSize){
     let fullCtx = '';
     if(banco.length < targetSize){
       setQuizLoadBar(15,'Cargando documento...');
-      const textoSnap = await db.ref(`${DB_PATH}/pdfs/${currentQuizPdfId}/texto`).once('value');
-      const textos = textoSnap.val()||{};
+      const textos = await _leerTextoCompleto(currentQuizPdfId);
       Object.entries(textos).forEach(([idx,txt])=>{
         if(txt && txt.trim()) fullCtx += `[PÁGINA ${parseInt(idx)+1}]\n${txt}\n\n`;
       });
@@ -2183,8 +2246,7 @@ async function mostrarPaginaRevision(idx){
   const pageIdx = (parseInt(q.pagina)||1) - 1;
 
   try{
-    const snap = await db.ref(`${DB_PATH}/pdfs/${currentQuizPdfId}/texto/${pageIdx}`).once('value');
-    const textoRaw = snap.val()||'(Texto de esta página no disponible)';
+    const textoRaw = (await _leerTextoPagina(currentQuizPdfId, pageIdx)) || '(Texto de esta página no disponible)';
 
     // Format raw text for display: handles BOTH text with newlines AND dense single-line text
     function fmtEsc(t){

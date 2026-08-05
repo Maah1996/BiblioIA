@@ -336,6 +336,11 @@
             <div id="dash-last-queries"><div class="empty-state"><p>Sin consultas aún</p></div></div>
           </div>
         </div>
+        <div class="card" style="margin-top:20px;border:2px dashed var(--border);">
+          <div class="card-title">🔧 Mantenimiento (temporal)</div>
+          <p style="font-size:12px;color:var(--text-g);margin:0 0 10px;">Un solo clic: mueve el texto de los PDFs subidos antes de hoy a un lugar aparte, para que la biblioteca cargue más rápido al cambiar de pantalla. Seguro de repetir. Se quitará este botón una vez confirmado.</p>
+          <button class="btn-sm btn-blue" id="btn-migrar-texto" onclick="migrarTextosPdfs()">🔧 Migrar texto de PDFs antiguos</button>
+        </div>
       </div>
 
       <!-- ── BIBLIOTECA ADMIN ──────────────────────── -->
@@ -847,6 +852,6 @@
 </div>
 
 <!-- ═══════════════════ JAVASCRIPT ════════════════════ -->
-<script src="app.js?v=11"></script>
+<script src="app.js?v=12"></script>
 </body>
 </html>
