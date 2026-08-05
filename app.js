@@ -1395,20 +1395,68 @@ function goToConsultarWith(pdfId){
   }, 200);
 }
 
-// ══ PDF SELECTOR ══════════════════════════════════════════
+// ══ SELECTOR DE CARPETA (Consultar) ═══════════════════════
+// Mismo modelo que la Biblioteca del usuario y Documentos (admin): al entrar
+// se ven solo las carpetas principales (raíz); un clic entra a sus subcarpetas
+// (breadcrumb + "Volver arriba") y de paso deja esa carpeta como filtro activo
+// — antes esto era un <select> plano con TODAS las carpetas de cualquier
+// profundidad mezcladas, sin respetar el árbol ni el acceso por carpeta del usuario.
+let _consultarNavId = null;      // carpeta que se está explorando (null = raíz)
+let _consultarFiltro = '';       // nombre de la carpeta usada para filtrar (''=todas)
+
 function loadPdfSelector(){
-  // Poblar select de carpetas
-  const sel = document.getElementById('consultar-carpeta');
-  if(sel){
-    const activas = allMaterias.filter(m=>m.activo!==false);
-    sel.innerHTML = '<option value="">— Todas las carpetas —</option>' +
-      activas.map(m=>`<option value="${escHtml(m.nombre)}">${m.icono||'📁'} ${escHtml(m.nombre)}</option>`).join('');
-  }
+  _consultarNavId = null;
+  _consultarFiltro = '';
+  _renderConsultarExplorer();
   filtrarPdfsPorCarpeta();
 }
 
+function _consultarAbrirCarpeta(id){
+  _consultarNavId = id;
+  const m = allMaterias.find(x=>x.id===id);
+  _consultarFiltro = m ? m.nombre : '';
+  _renderConsultarExplorer();
+  filtrarPdfsPorCarpeta();
+}
+
+function _consultarIrARaiz(){
+  _consultarNavId = null;
+  _consultarFiltro = '';
+  _renderConsultarExplorer();
+  filtrarPdfsPorCarpeta();
+}
+
+function _renderConsultarExplorer(){
+  const cont = document.getElementById('consultar-carpeta-explorer');
+  if(!cont) return;
+  const hijos = allMaterias.filter(h=>(h.parentId||null)===_consultarNavId && h.activo!==false && _carpetaPermitida(h));
+
+  const ruta = _rutaMateria(_consultarNavId);
+  let bc = `<span onclick="_consultarIrARaiz()" style="cursor:pointer;font-weight:600;color:var(--blue);">📁 Todas las carpetas</span>`;
+  ruta.forEach((mm,i)=>{
+    bc += ` <span style="color:var(--border);">/</span> `;
+    bc += (i===ruta.length-1)
+      ? `<span style="color:var(--text-g);">${escHtml(mm.nombre)}</span>`
+      : `<span onclick="_consultarAbrirCarpeta('${mm.id}')" style="cursor:pointer;font-weight:600;color:var(--blue);">${escHtml(mm.nombre)}</span>`;
+  });
+
+  let filas;
+  if(hijos.length){
+    filas = hijos.map(h=>{
+      const tieneHijos = allMaterias.some(x=>(x.parentId||null)===h.id && x.activo!==false && _carpetaPermitida(x));
+      return `<div onclick="_consultarAbrirCarpeta('${h.id}')" style="padding:9px 12px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);color:var(--navy);" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''">
+        <i class="ti ${tieneHijos?'ti-folders':'ti-folder'}" style="color:var(--blue);"></i> ${escHtml(h.nombre)}
+      </div>`;
+    }).join('');
+  } else {
+    filas = `<div style="padding:14px 12px;text-align:center;color:var(--text-g);font-size:12px;">${_consultarNavId?'Sin subcarpetas.':'No hay carpetas.'}</div>`;
+  }
+
+  cont.innerHTML = `<div style="padding:8px 12px;font-size:12px;background:var(--bg);border-bottom:1px solid var(--border);">${bc}</div>${filas}`;
+}
+
 function filtrarPdfsPorCarpeta(){
-  const carpeta = (document.getElementById('consultar-carpeta')?.value)||'';
+  const carpeta = _consultarFiltro;
   const pdfs = carpeta ? allPdfs.filter(p=>_nombresConDescendientes(carpeta).has(p.categoria)) : allPdfs;
   renderPdfSelectorList(pdfs);
 }

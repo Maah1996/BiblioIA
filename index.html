@@ -661,10 +661,8 @@
           <div>
             <div class="pdf-selector">
               <div class="pdf-selector-head">📁 Carpeta</div>
-              <div style="padding:10px 12px;border-bottom:1px solid var(--border);">
-                <select id="consultar-carpeta" onchange="filtrarPdfsPorCarpeta()" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--radius-s);font-size:13px;font-family:inherit;outline:none;background:#fff;color:var(--navy);cursor:pointer;">
-                  <option value="">— Todas las carpetas —</option>
-                </select>
+              <div id="consultar-carpeta-explorer" style="border-bottom:1px solid var(--border);max-height:220px;overflow-y:auto;">
+                <div style="padding:20px;text-align:center;color:var(--text-g);font-size:13px;">Cargando...</div>
               </div>
               <div class="pdf-selector-head" style="border-top:none;">📄 Documentos</div>
               <div id="pdf-selector-list">
@@ -852,6 +850,6 @@
 </div>
 
 <!-- ═══════════════════ JAVASCRIPT ════════════════════ -->
-<script src="app.js?v=12"></script>
+<script src="app.js?v=13"></script>
 </body>
 </html>
