@@ -1390,8 +1390,15 @@ function renderLibraryGrid(pdfs){
 function goToConsultarWith(pdfId){
   goTo('consultar');
   setTimeout(()=>{
-    const chk = document.getElementById(`chk-pdf-${pdfId}`);
-    if(chk){ chk.checked=true; }
+    // Abre la carpeta del documento (si no, con "Todas las carpetas" el
+    // checklist queda vacío y no habría nada donde tildarlo).
+    const p = allPdfs.find(x=>x.id===pdfId);
+    const m = p ? allMaterias.find(x=>x.nombre===p.categoria) : null;
+    if(m) _consultarAbrirCarpeta(m.id);
+    setTimeout(()=>{
+      const chk = document.getElementById(`chk-pdf-${pdfId}`);
+      if(chk){ chk.checked=true; }
+    }, 50);
   }, 200);
 }
 
@@ -1463,12 +1470,20 @@ function _renderConsultarExplorer(){
 
 function filtrarPdfsPorCarpeta(){
   const carpeta = _consultarFiltro;
-  const pdfs = carpeta ? allPdfs.filter(p=>_nombresConDescendientes(carpeta).has(p.categoria)) : allPdfs;
+  // Sin carpeta elegida ("Todas las carpetas") no se lista nada todavía —
+  // volcar la biblioteca entera sin filtrar era una lista larga y sin
+  // sentido visual. Se pide primero entrar a una carpeta en el explorador.
+  if(!carpeta){ renderPdfSelectorList(null); return; }
+  const pdfs = allPdfs.filter(p=>_nombresConDescendientes(carpeta).has(p.categoria));
   renderPdfSelectorList(pdfs);
 }
 
 function renderPdfSelectorList(pdfs){
   const el = document.getElementById('pdf-selector-list');
+  if(pdfs===null){
+    el.innerHTML='<div style="padding:20px;text-align:center;color:var(--text-g);font-size:13px;">📁 Elige una carpeta arriba para ver sus documentos.</div>';
+    return;
+  }
   if(!pdfs.length){
     el.innerHTML='<div style="padding:20px;text-align:center;color:var(--text-g);font-size:13px;">Sin documentos en esta carpeta.</div>';
     return;
