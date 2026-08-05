@@ -1414,6 +1414,7 @@ let _consultarFiltro = '';       // nombre de la carpeta usada para filtrar (''=
 function loadPdfSelector(){
   _consultarNavId = null;
   _consultarFiltro = '';
+  chatHistory = []; // conversación nueva cada vez que se entra a la pantalla
   _renderConsultarExplorer();
   filtrarPdfsPorCarpeta();
 }
@@ -1504,13 +1505,32 @@ const SYSTEM_PROMPT = `Eres un asistente académico que explica el contenido de 
 CÓMO RESPONDER:
 1. Explica con tus propias palabras, de forma natural y comprensible — no copies texto literal del documento.
 2. Usa un tono conversacional pero preciso: como si le explicaras a un compañero que necesita entender el tema.
-3. Si el tema no está en los documentos, dilo de forma natural: "Ese tema no aparece en los documentos que tienes seleccionados."
+3. Prioridad SIEMPRE: responde primero con lo que dicen los documentos seleccionados.
 4. Siempre indica de dónde viene la información con el formato: [Archivo: nombre.pdf | Página: X]
 5. Si la información aparece en varias páginas, cita todas las fuentes relevantes.
-6. Estructura tu respuesta así:
+6. Estructura tu respuesta así cuando la fuente es un documento:
    💡 [explicación clara y humanizada del tema]
    📄 FUENTE: [Archivo: X | Página: Y]
-   💬 FRAGMENTO: "[cita textual del documento]"`;
+   💬 FRAGMENTO: "[cita textual del documento]"
+
+SI EL TEMA NO ESTÁ EN LOS DOCUMENTOS:
+Dilo con naturalidad ("Ese tema no aparece en los documentos que tienes seleccionados") y usa la herramienta de búsqueda web para encontrar la norma o ley chilena más actualizada sobre el tema. Prioriza SIEMPRE fuentes oficiales: Biblioteca del Congreso Nacional (bcn.cl, leychile.cl), Cámara de Diputados (camara.cl), Senado (senado.cl) o el Diario Oficial. Nunca inventes una cita legal — si la búsqueda no encuentra nada confiable, dilo honestamente en vez de responder con algo inventado.
+Marca siempre que es una fuente externa, así:
+   🌐 FUENTE EXTERNA (no está en tus documentos): [nombre de la norma/ley — organismo — URL]
+Al terminar de responder con la norma chilena, pregunta si el estudiante quiere que además busques cómo se regula el mismo tema en otros países — por ejemplo: "¿Quieres que también busque cómo se regula esto en otros países?" — y solo hagas esa búsqueda internacional si el estudiante lo confirma en un mensaje siguiente.`;
+
+// Búsqueda web server-side (Claude ejecuta la búsqueda, no el navegador). Sin
+// allowed_domains a propósito: la respuesta chilena se guía por el prompt de
+// arriba (prioriza bcn.cl/leychile.cl/camara.cl/senado.cl), pero para la
+// comparación con otros países la búsqueda necesita poder salir de esos
+// dominios. max_uses limita el gasto por consulta.
+const WEB_SEARCH_TOOL = { type: 'web_search_20260209', name: 'web_search', max_uses: 3 };
+
+// Historial de la conversación actual en Consultar — se manda completo en cada
+// request (la API es sin estado) para que el modelo recuerde la pregunta
+// anterior y pueda responder "sí, busca en otros países" con contexto. Se
+// reinicia cada vez que se entra a la pantalla (loadPdfSelector).
+let chatHistory = [];
 
 async function sendQuery(){
   const input = document.getElementById('chat-input');
@@ -1538,7 +1558,16 @@ async function sendQuery(){
   const streamDiv = appendStreamingMsg();
 
   try {
-    const textoContexto = await buildContext(selected);
+    // Primer mensaje de la conversación: se adjunta el texto completo de los
+    // documentos elegidos. Los siguientes mensajes reutilizan ese contexto a
+    // través del historial — así el modelo recuerda la pregunta anterior y
+    // puede responder correctamente a un simple "sí" sobre otros países.
+    let userContent = pregunta;
+    if(!chatHistory.length){
+      const textoContexto = await buildContext(selected);
+      userContent = `DOCUMENTOS DISPONIBLES:\n\n${textoContexto}\n\n---\n\nPREGUNTA DEL ESTUDIANTE:\n${pregunta}`;
+    }
+    chatHistory.push({ role: 'user', content: userContent });
 
     const resp = await fetch('https://biblioia-proxy.maahantartico.workers.dev/', {
       method: 'POST',
@@ -1553,10 +1582,8 @@ async function sendQuery(){
         thinking: { type: 'disabled' },
         stream: true,
         system: SYSTEM_PROMPT,
-        messages: [{
-          role: 'user',
-          content: `DOCUMENTOS DISPONIBLES:\n\n${textoContexto}\n\n---\n\nPREGUNTA DEL ESTUDIANTE:\n${pregunta}`
-        }]
+        tools: [WEB_SEARCH_TOOL],
+        messages: chatHistory
       })
     });
 
@@ -1593,6 +1620,7 @@ async function sendQuery(){
     }
 
     finalizeStreamingMsg(streamDiv, fullText);
+    chatHistory.push({ role: 'assistant', content: fullText });
 
     const pdfNames = selected.map(id=>{ const p=allPdfs.find(pp=>pp.id===id); return p?.nombre||id; });
     await db.ref(`${DB_PATH}/consultas/${currentUser.uid}`).push({
@@ -1604,6 +1632,8 @@ async function sendQuery(){
 
   } catch(e){
     streamDiv.remove();
+    // Saca la pregunta sin respuesta del historial para no romper el próximo turno
+    if(chatHistory.length && chatHistory[chatHistory.length-1].role==='user') chatHistory.pop();
     if(e.message === 'RATE_LIMIT'){
       appendMessage('ai', '⏳ Límite de uso de la API alcanzado. Espera 1 minuto e intenta de nuevo.\n\nSi ocurre con frecuencia, selecciona menos documentos a la vez.');
     } else {
