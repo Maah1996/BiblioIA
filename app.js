@@ -1432,27 +1432,33 @@ function _renderConsultarExplorer(){
   const hijos = allMaterias.filter(h=>(h.parentId||null)===_consultarNavId && h.activo!==false && _carpetaPermitida(h));
 
   const ruta = _rutaMateria(_consultarNavId);
-  let bc = `<span onclick="_consultarIrARaiz()" style="cursor:pointer;font-weight:600;color:var(--blue);">📁 Todas las carpetas</span>`;
+  let bc = `<span class="cx-link" onclick="_consultarIrARaiz()">📁 Todas las carpetas</span>`;
   ruta.forEach((mm,i)=>{
-    bc += ` <span style="color:var(--border);">/</span> `;
+    bc += `<span class="cx-sep">/</span>`;
     bc += (i===ruta.length-1)
-      ? `<span style="color:var(--text-g);">${escHtml(mm.nombre)}</span>`
-      : `<span onclick="_consultarAbrirCarpeta('${mm.id}')" style="cursor:pointer;font-weight:600;color:var(--blue);">${escHtml(mm.nombre)}</span>`;
+      ? `<span class="cx-current">${escHtml(mm.nombre)}</span>`
+      : `<span class="cx-link" onclick="_consultarAbrirCarpeta('${mm.id}')">${escHtml(mm.nombre)}</span>`;
   });
 
   let filas;
   if(hijos.length){
     filas = hijos.map(h=>{
-      const tieneHijos = allMaterias.some(x=>(x.parentId||null)===h.id && x.activo!==false && _carpetaPermitida(x));
-      return `<div onclick="_consultarAbrirCarpeta('${h.id}')" style="padding:9px 12px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);color:var(--navy);" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''">
-        <i class="ti ${tieneHijos?'ti-folders':'ti-folder'}" style="color:var(--blue);"></i> ${escHtml(h.nombre)}
+      const subcarpetas = allMaterias.filter(x=>(x.parentId||null)===h.id && x.activo!==false && _carpetaPermitida(x));
+      const docs = allPdfs.filter(p=>_nombresConDescendientes(h.nombre).has(p.categoria)).length;
+      const info = subcarpetas.length
+        ? `${subcarpetas.length} subcarpeta${subcarpetas.length!==1?'s':''}`
+        : `${docs} documento${docs!==1?'s':''}`;
+      return `<div class="cx-row" onclick="_consultarAbrirCarpeta('${h.id}')">
+        <span class="cx-ic"><i class="ti ${subcarpetas.length?'ti-folders':'ti-folder'}"></i></span>
+        <div class="cx-body"><div class="cx-nm">${escHtml(h.nombre)}</div><div class="cx-mt">${info}</div></div>
+        <span class="cx-chev"><i class="ti ti-chevron-right"></i></span>
       </div>`;
     }).join('');
   } else {
-    filas = `<div style="padding:14px 12px;text-align:center;color:var(--text-g);font-size:12px;">${_consultarNavId?'Sin subcarpetas.':'No hay carpetas.'}</div>`;
+    filas = `<div class="cx-empty">${_consultarNavId?'Sin subcarpetas.':'No hay carpetas.'}</div>`;
   }
 
-  cont.innerHTML = `<div style="padding:8px 12px;font-size:12px;background:var(--bg);border-bottom:1px solid var(--border);">${bc}</div>${filas}`;
+  cont.innerHTML = `<div class="cx-bc">${bc}</div>${filas}`;
 }
 
 function filtrarPdfsPorCarpeta(){

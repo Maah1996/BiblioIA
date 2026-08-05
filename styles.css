@@ -265,6 +265,20 @@ footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
 .pdf-item .pi-info{flex:1;}
 .pdf-item .pi-name{font-size:13px;font-weight:600;color:var(--navy);margin-bottom:2px;}
 .pdf-item .pi-cat{font-size:11px;color:var(--text-g);}
+.cx-bc{padding:11px 18px;font-size:12px;background:var(--bg);border-bottom:1px solid var(--border);line-height:1.6;}
+.cx-bc .cx-sep{color:var(--border);margin:0 4px;}
+.cx-bc .cx-link{cursor:pointer;font-weight:600;color:var(--blue);}
+.cx-bc .cx-link:hover{text-decoration:underline;}
+.cx-bc .cx-current{color:var(--text-g);}
+.cx-row{display:flex;align-items:center;gap:11px;padding:10px 18px;border-bottom:1px solid var(--border);cursor:pointer;transition:var(--tr);}
+.cx-row:last-child{border-bottom:none;}
+.cx-row:hover{background:#fafbff;}
+.cx-ic{flex:none;width:30px;height:30px;border-radius:8px;background:#eff6ff;color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:15px;}
+.cx-body{flex:1;min-width:0;}
+.cx-nm{font-size:13px;font-weight:600;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cx-mt{font-size:11px;color:var(--text-g);margin-top:1px;}
+.cx-chev{flex:none;color:var(--border);font-size:15px;}
+.cx-empty{padding:16px 18px;text-align:center;color:var(--text-g);font-size:12px;}
 .chat-area{background:#fff;border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow);display:flex;flex-direction:column;min-height:520px;}
 .chat-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
 .chat-head h3{font-size:14px;font-weight:700;color:var(--navy);}
