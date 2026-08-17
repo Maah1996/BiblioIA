@@ -13,7 +13,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-storage-compat.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
-<link rel="stylesheet" href="styles.css?v=3">
+<link rel="stylesheet" href="styles.css?v=4">
 </head>
 <body>
 
@@ -661,10 +661,10 @@
           <div>
             <div class="pdf-selector">
               <div class="pdf-selector-head">📁 Carpeta</div>
-              <div id="consultar-carpeta-explorer" style="border-bottom:1px solid var(--border);max-height:220px;overflow-y:auto;">
+              <div id="consultar-carpeta-explorer" style="border-bottom:1px solid var(--border);max-height:280px;overflow-y:auto;">
                 <div style="padding:20px;text-align:center;color:var(--text-g);font-size:13px;">Cargando...</div>
               </div>
-              <div class="pdf-selector-head" style="border-top:none;">📄 Documentos</div>
+              <div class="pdf-selector-head" id="consultar-docs-head" style="border-top:none;">📄 Documentos</div>
               <div id="pdf-selector-list">
                 <div style="padding:20px;text-align:center;color:var(--text-g);font-size:13px;">Cargando...</div>
               </div>
@@ -850,6 +850,6 @@
 </div>
 
 <!-- ═══════════════════ JAVASCRIPT ════════════════════ -->
-<script src="app.js?v=16"></script>
+<script src="app.js?v=17"></script>
 </body>
 </html>

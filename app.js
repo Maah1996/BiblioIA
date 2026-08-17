@@ -1440,13 +1440,25 @@ function _renderConsultarExplorer(){
   const hijos = allMaterias.filter(h=>(h.parentId||null)===_consultarNavId && h.activo!==false && _carpetaPermitida(h));
 
   const ruta = _rutaMateria(_consultarNavId);
-  let bc = `<span class="cx-link" onclick="_consultarIrARaiz()">📁 Todas las carpetas</span>`;
+  let bc = `<span class="cx-link" onclick="_consultarIrARaiz()"><i class="ti ti-home"></i>Todas las carpetas</span>`;
   ruta.forEach((mm,i)=>{
-    bc += `<span class="cx-sep">/</span>`;
+    bc += `<span class="cx-sep"><i class="ti ti-chevron-right"></i></span>`;
     bc += (i===ruta.length-1)
       ? `<span class="cx-current">${escHtml(mm.nombre)}</span>`
       : `<span class="cx-link" onclick="_consultarAbrirCarpeta('${mm.id}')">${escHtml(mm.nombre)}</span>`;
   });
+
+  // Fila "← Volver" explícita: antes la única forma de retroceder era
+  // adivinar que el breadcrumb de arriba era clickeable.
+  let volver = '';
+  if(_consultarNavId){
+    const padre = ruta.length>1 ? ruta[ruta.length-2].id : null;
+    const onclickVolver = padre ? `_consultarAbrirCarpeta('${padre}')` : `_consultarIrARaiz()`;
+    volver = `<div class="cx-row cx-row-back" onclick="${onclickVolver}">
+      <span class="cx-ic"><i class="ti ti-arrow-left"></i></span>
+      <div class="cx-body"><div class="cx-nm">Volver</div></div>
+    </div>`;
+  }
 
   let filas;
   if(hijos.length){
@@ -1466,7 +1478,13 @@ function _renderConsultarExplorer(){
     filas = `<div class="cx-empty">${_consultarNavId?'Sin subcarpetas.':'No hay carpetas.'}</div>`;
   }
 
-  cont.innerHTML = `<div class="cx-bc">${bc}</div>${filas}`;
+  cont.innerHTML = `<div class="cx-bc">${bc}</div>${volver}${filas}`;
+
+  const head = document.getElementById('consultar-docs-head');
+  if(head){
+    const actual = ruta.length ? ruta[ruta.length-1].nombre : '';
+    head.textContent = actual ? `📄 Documentos — ${actual}` : '📄 Documentos';
+  }
 }
 
 function filtrarPdfsPorCarpeta(){
