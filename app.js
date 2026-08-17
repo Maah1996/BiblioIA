@@ -1542,7 +1542,12 @@ Al terminar de responder con la norma chilena, pregunta si el estudiante quiere 
 // arriba (prioriza bcn.cl/leychile.cl/camara.cl/senado.cl), pero para la
 // comparación con otros países la búsqueda necesita poder salir de esos
 // dominios. max_uses limita el gasto por consulta.
-const WEB_SEARCH_TOOL = { type: 'web_search_20260209', name: 'web_search', max_uses: 3 };
+// max_uses en 1 (antes 3): cada búsqueda extra suma tiempo a la respuesta y el
+// Worker de Cloudflare (plan gratuito) corta la conexión pasados ~30s — con la
+// búsqueda web activada esa respuesta se estaba pasando de ese límite. Con 1
+// sola pasada de búsqueda es más probable que alcance a responder a tiempo.
+// Pendiente real: mover a un plan de Cloudflare sin ese límite (ver bitácora).
+const WEB_SEARCH_TOOL = { type: 'web_search_20260209', name: 'web_search', max_uses: 1 };
 
 // Historial de la conversación actual en Consultar — se manda completo en cada
 // request (la API es sin estado) para que el modelo recuerde la pregunta
@@ -1654,6 +1659,11 @@ async function sendQuery(){
     if(chatHistory.length && chatHistory[chatHistory.length-1].role==='user') chatHistory.pop();
     if(e.message === 'RATE_LIMIT'){
       appendMessage('ai', '⏳ Límite de uso de la API alcanzado. Espera 1 minuto e intenta de nuevo.\n\nSi ocurre con frecuencia, selecciona menos documentos a la vez.');
+    } else if(e instanceof TypeError){
+      // fetch() falla con TypeError cuando se corta la conexión (no cuando la
+      // API responde con un error) — el caso típico acá es que la respuesta
+      // con búsqueda web tardó más que el límite de tiempo del Worker gratuito.
+      appendMessage('ai', '⚠️ La conexión se cortó antes de terminar — probablemente la búsqueda web tardó demasiado (limitación del servidor gratuito). Probá de nuevo con una pregunta más puntual, o sin pedir la comparación con otros países.');
     } else {
       appendMessage('ai', `⚠️ Error al consultar la IA: ${e.message}`);
     }
