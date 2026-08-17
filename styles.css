@@ -282,15 +282,20 @@ footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
 .cx-mt{font-size:11px;color:var(--text-g);margin-top:1px;}
 .cx-chev{flex:none;color:var(--border);font-size:15px;}
 .cx-empty{padding:16px 18px;text-align:center;color:var(--text-g);font-size:12px;}
-.chat-area{background:#fff;border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow);display:flex;flex-direction:column;min-height:520px;}
-.chat-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+/* Alto fijo (ligado al viewport) para que la conversación crezca hacia
+   adentro del panel de chat en vez de empujar toda la página hacia abajo.
+   Así, al hacer scroll con la conversación larga, solo se mueve el panel
+   derecho — la carpeta de la izquierda queda quieta. En mobile (≤900px,
+   ver RESPONSIVE) se vuelve a alto natural porque ahí las columnas se apilan. */
+.chat-area{background:#fff;border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow);display:flex;flex-direction:column;height:calc(100vh - 210px);min-height:420px;}
+.chat-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0;}
 .chat-head h3{font-size:14px;font-weight:700;color:var(--navy);}
-.chat-messages{flex:1;padding:20px;overflow-y:auto;display:flex;flex-direction:column;gap:16px;min-height:320px;}
+.chat-messages{flex:1;padding:20px;overflow-y:auto;display:flex;flex-direction:column;gap:16px;min-height:0;}
 .msg{max-width:85%;padding:14px 18px;border-radius:12px;font-size:13px;line-height:1.7;}
 .msg-user{align-self:flex-end;background:linear-gradient(135deg,var(--blue),var(--blue-l));color:#fff;border-radius:12px 12px 4px 12px;}
 .msg-ai{align-self:flex-start;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:12px 12px 12px 4px;white-space:pre-wrap;}
 .msg-ai .citation{display:inline-flex;align-items:center;gap:4px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;color:var(--blue);margin-top:10px;}
-.chat-input-area{padding:16px 20px;border-top:1px solid var(--border);}
+.chat-input-area{padding:16px 20px;border-top:1px solid var(--border);flex-shrink:0;}
 .chat-input-row{display:flex;gap:10px;align-items:flex-end;}
 .chat-input-row textarea{flex:1;padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--radius-s);font-size:13px;resize:none;outline:none;font-family:inherit;transition:var(--tr);max-height:120px;}
 .chat-input-row textarea:focus{border-color:var(--blue-l);box-shadow:0 0 0 3px rgba(59,130,246,.1);}
@@ -349,6 +354,7 @@ footer .copy{font-size:12px;color:rgba(255,255,255,.35);}
   .sidebar{width:60px;}
   .ni-text,.sidebar-label{display:none;}
   .query-layout{grid-template-columns:1fr;}
+  .chat-area{height:auto;min-height:420px;}
   .hero{flex-direction:column;padding:100px 24px 60px;}
   .hero-right{display:none;}
   .steps::before{display:none;}
