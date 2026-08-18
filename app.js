@@ -1530,12 +1530,22 @@ CÓMO RESPONDER:
    💡 [explicación clara y humanizada del tema]
    📄 FUENTE: [Archivo: X | Página: Y]
    💬 FRAGMENTO: "[cita textual del documento]"
+7. Si el estudiante pide explícitamente un cuadro, tabla o cuadro comparativo (y no estás usando la búsqueda web, ver más abajo), armalo con formato de tabla markdown para que se vea como una tabla real con líneas, así:
+   | Columna A | Columna B |
+   | --- | --- |
+   | dato 1 | dato 2 |
+   No uses este formato para el resto de la respuesta, solo cuando te pidan explícitamente un cuadro/tabla.
 
 SI EL TEMA NO ESTÁ EN LOS DOCUMENTOS:
 Dilo con naturalidad ("Ese tema no aparece en los documentos que tienes seleccionados") y usa la herramienta de búsqueda web para encontrar la norma o ley chilena más actualizada sobre el tema. Prioriza SIEMPRE fuentes oficiales: Biblioteca del Congreso Nacional (bcn.cl, leychile.cl), Cámara de Diputados (camara.cl), Senado (senado.cl) o el Diario Oficial. Nunca inventes una cita legal — si la búsqueda no encuentra nada confiable, dilo honestamente en vez de responder con algo inventado.
 Marca siempre que es una fuente externa, así:
    🌐 FUENTE EXTERNA (no está en tus documentos): [nombre de la norma/ley — organismo — URL]
-Al terminar de responder con la norma chilena, pregunta si el estudiante quiere que además busques cómo se regula el mismo tema en otros países — por ejemplo: "¿Quieres que también busque cómo se regula esto en otros países?" — y solo hagas esa búsqueda internacional si el estudiante lo confirma en un mensaje siguiente.`;
+Al terminar de responder con la norma chilena, pregunta si el estudiante quiere que además busques cómo se regula el mismo tema en otros países — por ejemplo: "¿Quieres que también busque cómo se regula esto en otros países?" — y solo hagas esa búsqueda internacional si el estudiante lo confirma en un mensaje siguiente.
+
+IMPORTANTE cuando uses la búsqueda web (el servidor donde corre esto tiene un límite de tiempo por respuesta):
+- Andá directo al grano: 3-5 líneas por norma, sin relleno ni repetir explicaciones que ya diste antes en la conversación.
+- NO armes tablas ni cuadros comparativos completos en una sola respuesta (piden mucho tiempo de redacción) — si te piden comparar el PDF con la ley, o comparar varios países, hacelo un tema por mensaje: respondé el primero de forma breve y proponé seguir con el resto en la próxima pregunta.
+- Una sola búsqueda alcanza: no seas exhaustivo, priorizá encontrar la fuente oficial más clara y responder con eso.`;
 
 // Búsqueda web server-side (Claude ejecuta la búsqueda, no el navegador). Sin
 // allowed_domains a propósito: la respuesta chilena se guía por el prompt de
@@ -1601,7 +1611,10 @@ async function sendQuery(){
       },
       body: JSON.stringify({
         model: 'claude-sonnet-5',
-        max_tokens: 2600,
+        // Bajado de 2600 a 1600 (17-ago): menos texto para generar = menos
+        // tiempo total de respuesta, para acercarse más al límite de ~30s
+        // del Worker gratuito de Cloudflare cuando además busca en la web.
+        max_tokens: 1600,
         thinking: { type: 'disabled' },
         stream: true,
         system: SYSTEM_PROMPT,
@@ -1712,19 +1725,15 @@ async function buildContext(pdfIds){
   return ctx;
 }
 
-function formatAIResponse(text){
-  // Escapar HTML
-  let html = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  // Convertir saltos de línea
-  html = html.replace(/\n/g,'<br>');
-  // Convertir citas [Archivo: X | Página: Y] en links clickeables
-  html = html.replace(/\[Archivo:\s*([^\|]+?)\s*\|\s*Página:\s*(\d+)\]/g, (match, nombre, pagina) => {
+// Convierte citas [Archivo: X | Página: Y] en links clickeables, sobre texto
+// que ya viene escapado como HTML.
+function _linkificarCitas(html){
+  return html.replace(/\[Archivo:\s*([^\|]+?)\s*\|\s*Página:\s*(\d+)\]/g, (match, nombre, pagina) => {
     const pdfNorm = nombre.trim().toLowerCase().replace(/\.pdf$/i,'');
     const pdf = allPdfs.find(p => {
       const pNorm = (p.nombre||'').trim().toLowerCase().replace(/\.pdf$/i,'');
       return pNorm === pdfNorm || pNorm.includes(pdfNorm) || pdfNorm.includes(pNorm);
     });
-    const safe = match.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>');
     if(pdf && pdf.urlPdf){
       const url = pdf.urlPdf;
       return `<a href="${url}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;color:var(--blue);font-weight:600;text-decoration:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:1px 8px;font-size:12px;" title="Abrir PDF · Página ${pagina}">📄 ${escHtml(nombre.trim())} · Pág. ${pagina} ↗</a>`;
@@ -1732,7 +1741,60 @@ function formatAIResponse(text){
     // Si no tiene URL, mostrar solo resaltado
     return `<span style="display:inline-flex;align-items:center;gap:4px;color:var(--blue);font-weight:600;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:1px 8px;font-size:12px;">📄 ${escHtml(nombre.trim())} · Pág. ${pagina}</span>`;
   });
-  return html;
+}
+
+// Fila separadora de una tabla markdown, ej: "| --- | --- |" o "---|---|---"
+function _esFilaSeparadoraTabla(linea){
+  return /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)+\|?\s*$/.test(linea);
+}
+function _partirFilaTabla(linea){
+  let l = linea.trim();
+  if(l.startsWith('|')) l = l.slice(1);
+  if(l.endsWith('|')) l = l.slice(0, -1);
+  return l.split('|').map(c=>c.trim());
+}
+
+// Detecta bloques de tabla markdown (encabezado + fila --- + filas) dentro del
+// texto y los arma como <table> real, con líneas de verdad — antes cualquier
+// tabla que la IA armara se veía como texto plano con | y --- literales.
+function formatAIResponse(text){
+  const lineas = String(text==null?'':text).split('\n');
+  const partes = [];
+  let prosaBuf = [];
+
+  function volcarProsa(){
+    if(!prosaBuf.length) return;
+    let html = prosaBuf.join('\n').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    html = _linkificarCitas(html).replace(/\n/g,'<br>');
+    partes.push(html);
+    prosaBuf = [];
+  }
+
+  let i = 0;
+  while(i < lineas.length){
+    if(lineas[i].includes('|') && i+1 < lineas.length && _esFilaSeparadoraTabla(lineas[i+1])){
+      volcarProsa();
+      const encabezado = _partirFilaTabla(lineas[i]);
+      let j = i + 2;
+      const filas = [];
+      while(j < lineas.length && lineas[j].includes('|') && lineas[j].trim() !== ''){
+        filas.push(_partirFilaTabla(lineas[j]));
+        j++;
+      }
+      const tabla = '<div class="ai-table-wrap"><table class="ai-table"><thead><tr>' +
+        encabezado.map(c=>`<th>${escHtml(c)}</th>`).join('') +
+        '</tr></thead><tbody>' +
+        filas.map(f=>`<tr>${f.map(c=>`<td>${escHtml(c)}</td>`).join('')}</tr>`).join('') +
+        '</tbody></table></div>';
+      partes.push(tabla);
+      i = j;
+    } else {
+      prosaBuf.push(lineas[i]);
+      i++;
+    }
+  }
+  volcarProsa();
+  return partes.join('');
 }
 function escHtml(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 // Para meter un valor dentro de onclick="fn('...')": primero cierra el atributo (& y ")
