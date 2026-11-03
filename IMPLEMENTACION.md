@@ -39,3 +39,10 @@ El repositorio local corresponde a `Maah1996/BiblioIA` y al proyecto Firebase `m
 - Las fechas de publicación y vigencia son declaradas por el administrador. Aprobar una referencia no equivale a verificar oficialmente su vigencia.
 - Sigue pendiente trasladar la clave de IA al servidor. Las reglas actuales solo permiten al administrador leerla; la consulta de IA de miembros necesita esa integración de servidor antes de comercializarse.
 - Firebase validó la sintaxis y se verificaron las reglas publicadas mediante una lectura posterior. No se modificaron documentos existentes ni se realizaron consultas reales al proveedor de IA. Ocho pruebas automatizadas pasaron; navegación, comparación y formulario comprobados con datos ficticios.
+
+
+## Resolución de ejercicios matemáticos
+
+Las instrucciones del asistente piden transcribir el ejercicio, desarrollar pasos breves y destacar el resultado, sin inventar fuentes o datos ilegibles. `response-renderer.js` representa LaTeX, encabezados, negritas y tarjetas de pasos tanto durante la respuesta como en el historial. KaTeX 0.16.22 y sus fuentes WOFF2 se incluyen en `vendor/katex` con licencia MIT; no requiere una llamada a un CDN para mostrar fórmulas. Documentación de referencia: https://katex.org/docs/options.html.
+
+Validación: 13 pruebas con `node --test tests/*.test.cjs`, incluida la expresión `(√27 + √75) / √48 = 2`, tablas, fórmulas multilínea, escape de HTML y fórmulas incompletas. La vista de prueba se revisó en navegador. La prueba directa contra el servicio de IA devolvió HTTP 403; por tanto, no se considera verificada una nueva respuesta real del modelo con estas instrucciones.

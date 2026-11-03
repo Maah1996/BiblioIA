@@ -1770,43 +1770,7 @@ function _partirFilaTabla(linea){
 // texto y los arma como <table> real, con líneas de verdad — antes cualquier
 // tabla que la IA armara se veía como texto plano con | y --- literales.
 function formatAIResponse(text){
-  const lineas = String(text==null?'':text).split('\n');
-  const partes = [];
-  let prosaBuf = [];
-
-  function volcarProsa(){
-    if(!prosaBuf.length) return;
-    let html = prosaBuf.join('\n').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    html = _linkificarCitas(html).replace(/\n/g,'<br>');
-    partes.push(html);
-    prosaBuf = [];
-  }
-
-  let i = 0;
-  while(i < lineas.length){
-    if(lineas[i].includes('|') && i+1 < lineas.length && _esFilaSeparadoraTabla(lineas[i+1])){
-      volcarProsa();
-      const encabezado = _partirFilaTabla(lineas[i]);
-      let j = i + 2;
-      const filas = [];
-      while(j < lineas.length && lineas[j].includes('|') && lineas[j].trim() !== ''){
-        filas.push(_partirFilaTabla(lineas[j]));
-        j++;
-      }
-      const tabla = '<div class="ai-table-wrap"><table class="ai-table"><thead><tr>' +
-        encabezado.map(c=>`<th>${escHtml(c)}</th>`).join('') +
-        '</tr></thead><tbody>' +
-        filas.map(f=>`<tr>${f.map(c=>`<td>${escHtml(c)}</td>`).join('')}</tr>`).join('') +
-        '</tbody></table></div>';
-      partes.push(tabla);
-      i = j;
-    } else {
-      prosaBuf.push(lineas[i]);
-      i++;
-    }
-  }
-  volcarProsa();
-  return partes.join('');
+  return renderAssistantResponse(text);
 }
 function escHtml(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 // Para meter un valor dentro de onclick="fn('...')": primero cierra el atributo (& y ")
@@ -1849,10 +1813,18 @@ function appendStreamingMsg(){
 }
 function updateStreamingMsg(div, text){
   const messages = document.getElementById('chat-messages');
-  div.innerHTML = escHtml(text).replace(/\n/g,'<br>') + '<span class="stream-cursor"></span>';
-  messages.scrollTop = messages.scrollHeight;
+  div.pendingText = text;
+  if(div.renderTimer) return;
+  div.renderTimer = setTimeout(()=>{
+    div.renderTimer = null;
+    if(!div.isConnected) return;
+    div.innerHTML = formatAIResponse(div.pendingText) + '<span class="stream-cursor"></span>';
+    messages.scrollTop = messages.scrollHeight;
+  }, 80);
 }
 function finalizeStreamingMsg(div, text){
+  clearTimeout(div.renderTimer);
+  div.renderTimer = null;
   div.innerHTML = formatAIResponse(text);
 }
 
