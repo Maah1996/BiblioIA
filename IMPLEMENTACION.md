@@ -46,3 +46,8 @@ El repositorio local corresponde a `Maah1996/BiblioIA` y al proyecto Firebase `m
 Las instrucciones del asistente piden transcribir el ejercicio, desarrollar pasos breves y destacar el resultado, sin inventar fuentes o datos ilegibles. `response-renderer.js` representa LaTeX, encabezados, negritas y tarjetas de pasos tanto durante la respuesta como en el historial. KaTeX 0.16.22 y sus fuentes WOFF2 se incluyen en `vendor/katex` con licencia MIT; no requiere una llamada a un CDN para mostrar fórmulas. Documentación de referencia: https://katex.org/docs/options.html.
 
 Validación: 13 pruebas con `node --test tests/*.test.cjs`, incluida la expresión `(√27 + √75) / √48 = 2`, tablas, fórmulas multilínea, escape de HTML y fórmulas incompletas. La vista de prueba se revisó en navegador. La prueba directa contra el servicio de IA devolvió HTTP 403; por tanto, no se considera verificada una nueva respuesta real del modelo con estas instrucciones.
+
+
+## Archivo dentro del asistente
+
+Las preguntas y respuestas se recuperan de `consultas/{uid}` dentro del propio asistente, en orden descendente y agrupadas por consulta. El buscador incluye preguntas, respuestas y fuentes, sin distinguir tildes. Nuevo tema reinicia solo el contexto del modelo; el archivo visible permanece. Se guarda la pregunta antes de consultar la IA y se ofrece reintentar si falla el guardado de la respuesta. Las consultas con imagen conservan el texto y una indicación del adjunto, no el archivo de imagen. Se mantiene el aislamiento de cada cuenta al cerrar sesión. El archivo histórico no se envía entero al modelo. Validación: 18 pruebas locales aprobadas.

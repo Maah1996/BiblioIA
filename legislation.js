@@ -114,12 +114,13 @@ async function downloadLaw(id,version){
 function resetAssistant(){
   if(document.getElementById('btn-send').disabled)return;
   chatHistory=[];assistantLaw=null;clearAssistantImages();
-  document.getElementById('chat-messages').innerHTML='<div class="msg msg-ai">¿En qué estás trabajando? Consulta tus documentos, analiza una imagen o haz una pregunta general.</div>';
+  // Nueva conversación reinicia solo el contexto enviado al modelo, no el archivo visible.
+  if(typeof loadAssistantArchive==='function' && currentUser) loadAssistantArchive();
   document.getElementById('assistant-context').textContent='Consulta general · Puedes seleccionar documentos como fuentes.';
 }
 function consultLaw(id,version){
   if(document.getElementById('btn-send').disabled)return;
-  const law=laws.find(l=>l.id===id);goTo('consultar');
+  const law=laws.find(l=>l.id===id);goTo('consultar');resetAssistant();
   assistantLaw={id,version,nombre:law.nombre};
   document.getElementById('assistant-context').textContent=`Normativa: ${law.nombre} · ${lawVersions[version].publicacion} · ${law.versionActual===version?'Referencia aprobada':'Versión seleccionada (no es la referencia actual)'}`;
 }

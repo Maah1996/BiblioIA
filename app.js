@@ -1416,7 +1416,7 @@ let _consultarFiltro = '';       // nombre de la carpeta usada para filtrar (''=
 function loadPdfSelector(){
   _consultarNavId = null;
   _consultarFiltro = '';
-  resetAssistant(); // conversación nueva cada vez que se entra a la pantalla
+  loadAssistantArchive(); // Recupera consultas sin borrar la conversación visible.
   _renderConsultarExplorer();
   filtrarPdfsPorCarpeta();
 }
@@ -1590,11 +1590,16 @@ async function sendQuery(){
   const btn = document.getElementById('btn-send');
   btn.disabled=true;
 
+  const queryUser = currentUser;
+  const queryRef = db.ref(`${DB_PATH}/consultas/${queryUser.uid}`).push();
+  const queryRecord = {pregunta, respuesta:'', fecha:new Date().toISOString(), estado:'pendiente', pdfs:selected.map(id=>allPdfs.find(p=>p.id===id)?.nombre||id), imagenesAdjuntas:assistantImages.length, ley:assistantLaw ? {...assistantLaw} : null};
+  beginAssistantEntry(queryRef.key, queryRecord);
   const userBubble = appendMessage('user', pregunta);
   assistantImages.forEach(item=>{const img=document.createElement('img');img.src=item.url;img.alt='Imagen enviada';img.style.cssText='display:block;max-width:220px;max-height:180px;margin-top:10px;border-radius:6px';userBubble.appendChild(img);});
   const streamDiv = appendStreamingMsg();
 
   try {
+    await queryRef.set(queryRecord);
     // Primer mensaje de la conversación: se adjunta el texto completo de los
     // documentos elegidos. Los siguientes mensajes reutilizan ese contexto a
     // través del historial — así el modelo recuerda la pregunta anterior y
@@ -1655,27 +1660,32 @@ async function sendQuery(){
           const evt = JSON.parse(raw);
           if(evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta'){
             fullText += evt.delta.text;
+            if(currentUser?.uid !== queryUser.uid) return;
             updateStreamingMsg(streamDiv, fullText);
           }
         } catch(_){}
       }
     }
 
+    if(currentUser?.uid !== queryUser.uid) return;
     if(!fullText.trim()) throw new Error('La IA no devolvió una respuesta. Intenta nuevamente.');
     clearAssistantImages();
     finalizeStreamingMsg(streamDiv, fullText);
     chatHistory.push({ role: 'assistant', content: fullText });
 
-    const pdfNames = selected.map(id=>{ const p=allPdfs.find(pp=>pp.id===id); return p?.nombre||id; });
-    await db.ref(`${DB_PATH}/consultas/${currentUser.uid}`).push({
-      pregunta, respuesta: fullText,
-      pdfs: pdfNames,
-      ley: assistantLaw ? {id:assistantLaw.id, version:assistantLaw.version, nombre:assistantLaw.nombre} : null,
-      fecha: new Date().toISOString()
-    });
-    db.ref(`${DB_PATH}/usuarios/${currentUser.uid}/consultas`).transaction(v=>(v||0)+1);
+    queryRecord.respuesta = fullText;
+    queryRecord.estado = 'completa';
+    try {
+      await queryRef.set(queryRecord);
+      markAssistantEntrySaved(queryRef.key, queryRecord);
+      db.ref(`${DB_PATH}/usuarios/${queryUser.uid}/consultas`).transaction(v=>(v||0)+1).catch(()=>{});
+    } catch(saveError) {
+      showToast('La respuesta está visible, pero no se pudo guardar. Usa Reintentar guardado en esta consulta.','red');
+      offerAssistantSaveRetry(queryRef.key, queryRecord, queryRef);
+    }
 
   } catch(e){
+    if(currentUser?.uid !== queryUser.uid) return;
     streamDiv.remove();
     // Saca la pregunta sin respuesta del historial para no romper el próximo turno
     if(chatHistory.length && chatHistory[chatHistory.length-1].role==='user') chatHistory.pop();
@@ -1689,8 +1699,10 @@ async function sendQuery(){
     } else {
       appendMessage('ai', `⚠️ Error al consultar la IA: ${e.message}`);
     }
+  } finally {
+    finishAssistantEntry();
+    btn.disabled=false;
   }
-  btn.disabled=false;
 }
 
 // ══ TEXTO DE PDFs (nodo separado pdfs_texto) ═══════════════
@@ -1786,8 +1798,8 @@ function appendMessage(role, text){
   } else {
     div.textContent = text;
   }
-  messages.appendChild(div);
-  messages.scrollTop = messages.scrollHeight;
+  assistantMessageTarget().appendChild(div);
+  messages.scrollTop = 0;
   return div;
 }
 function appendTyping(){
@@ -1807,8 +1819,8 @@ function appendStreamingMsg(){
   const div = document.createElement('div');
   div.className = 'msg msg-ai';
   div.innerHTML = '<span class="stream-cursor"></span>';
-  messages.appendChild(div);
-  messages.scrollTop = messages.scrollHeight;
+  assistantMessageTarget().appendChild(div);
+  messages.scrollTop = 0;
   return div;
 }
 function updateStreamingMsg(div, text){
@@ -1819,7 +1831,7 @@ function updateStreamingMsg(div, text){
     div.renderTimer = null;
     if(!div.isConnected) return;
     div.innerHTML = formatAIResponse(div.pendingText) + '<span class="stream-cursor"></span>';
-    messages.scrollTop = messages.scrollHeight;
+    // Keep the newest question at the top while its answer streams.
   }, 80);
 }
 function finalizeStreamingMsg(div, text){
