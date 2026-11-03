@@ -46,6 +46,8 @@ auth && auth.onAuthStateChanged(async user => {
     loadAllData();
   } else {
     currentUser = null;
+    isAdmin = false;
+    CLAUDE_API_KEY = "";
     showLanding();
   }
 });
@@ -1414,7 +1416,7 @@ let _consultarFiltro = '';       // nombre de la carpeta usada para filtrar (''=
 function loadPdfSelector(){
   _consultarNavId = null;
   _consultarFiltro = '';
-  chatHistory = []; // conversación nueva cada vez que se entra a la pantalla
+  resetAssistant(); // conversación nueva cada vez que se entra a la pantalla
   _renderConsultarExplorer();
   filtrarPdfsPorCarpeta();
 }
@@ -1567,10 +1569,11 @@ let chatHistory = [];
 
 async function sendQuery(){
   const input = document.getElementById('chat-input');
-  const pregunta = input.value.trim();
+  const pregunta = input.value.trim() || (assistantImages.length ? 'Analiza esta imagen y explica su contenido.' : '');
   if(!pregunta) return;
+  if(document.getElementById('btn-send').disabled) return;
   const selected = [...document.querySelectorAll('#pdf-selector-list input:checked')].map(c=>c.value);
-  if(!selected.length){ showToast('Selecciona al menos un documento.','red'); return; }
+
 
   // Cargar key si no está en memoria
   if(!CLAUDE_API_KEY) await loadClaudeKey();
@@ -1587,7 +1590,8 @@ async function sendQuery(){
   const btn = document.getElementById('btn-send');
   btn.disabled=true;
 
-  appendMessage('user', pregunta);
+  const userBubble = appendMessage('user', pregunta);
+  assistantImages.forEach(item=>{const img=document.createElement('img');img.src=item.url;img.alt='Imagen enviada';img.style.cssText='display:block;max-width:220px;max-height:180px;margin-top:10px;border-radius:6px';userBubble.appendChild(img);});
   const streamDiv = appendStreamingMsg();
 
   try {
@@ -1596,11 +1600,13 @@ async function sendQuery(){
     // través del historial — así el modelo recuerda la pregunta anterior y
     // puede responder correctamente a un simple "sí" sobre otros países.
     let userContent = pregunta;
-    if(!chatHistory.length){
-      const textoContexto = await buildContext(selected);
-      userContent = `DOCUMENTOS DISPONIBLES:\n\n${textoContexto}\n\n---\n\nPREGUNTA DEL ESTUDIANTE:\n${pregunta}`;
+    const lawContext = !chatHistory.length ? await getAssistantLawContext() : "";
+    if(lawContext) userContent = lawContext + '\n\n' + pregunta;
+    if(selected.length){
+      const textoContexto = await buildContext(selected, pregunta);
+      userContent = `DOCUMENTOS DISPONIBLES:\n\n${textoContexto}\n\n---\n\nPREGUNTA:\n${userContent}`;
     }
-    chatHistory.push({ role: 'user', content: userContent });
+    chatHistory.push({ role: 'user', content: assistantMessageContent(userContent) });
 
     const resp = await fetch('https://biblioia-proxy.maahantartico.workers.dev/', {
       method: 'POST',
@@ -1617,7 +1623,7 @@ async function sendQuery(){
         max_tokens: 1600,
         thinking: { type: 'disabled' },
         stream: true,
-        system: SYSTEM_PROMPT,
+        system: UNIFIED_SYSTEM_PROMPT,
         tools: [WEB_SEARCH_TOOL],
         messages: chatHistory
       })
@@ -1655,6 +1661,8 @@ async function sendQuery(){
       }
     }
 
+    if(!fullText.trim()) throw new Error('La IA no devolvió una respuesta. Intenta nuevamente.');
+    clearAssistantImages();
     finalizeStreamingMsg(streamDiv, fullText);
     chatHistory.push({ role: 'assistant', content: fullText });
 
@@ -1662,6 +1670,7 @@ async function sendQuery(){
     await db.ref(`${DB_PATH}/consultas/${currentUser.uid}`).push({
       pregunta, respuesta: fullText,
       pdfs: pdfNames,
+      ley: assistantLaw ? {id:assistantLaw.id, version:assistantLaw.version, nombre:assistantLaw.nombre} : null,
       fecha: new Date().toISOString()
     });
     db.ref(`${DB_PATH}/usuarios/${currentUser.uid}/consultas`).transaction(v=>(v||0)+1);
@@ -1702,8 +1711,8 @@ async function _leerTextoPagina(pdfId, pageIdx){
   return legacy.val();
 }
 
-async function buildContext(pdfIds){
-  const MAX_TOTAL = 12000;
+async function buildContext(pdfIds, query=''){
+  const MAX_TOTAL = 48000;
   let ctx = '';
   const perPdf = Math.floor(MAX_TOTAL / Math.max(pdfIds.length, 1));
   for(const id of pdfIds){
@@ -1714,10 +1723,13 @@ async function buildContext(pdfIds){
     block += `Categoría: ${pdf.categoria||'—'} | Total páginas: ${pdf.paginas||'?'}\n`;
     block += `══════════════════════════════\n`;
     const textos = await _leerTextoCompleto(id);
-    let pdfText = '';
-    Object.entries(textos).forEach(([idx,txt])=>{
-      pdfText += `[PÁGINA ${parseInt(idx)+1}]\n${txt}\n\n`;
-    });
+    const words = [...new Set(query.toLocaleLowerCase().match(/[\p{L}\p{N}]{3,}/gu)||[])];
+    const ranked = Object.entries(textos).map(([idx,txt])=>({idx,txt,score:words.reduce((sum,w)=>sum+(txt.toLocaleLowerCase().split(w).length-1),0)})).sort((a,b)=>b.score-a.score||Number(a.idx)-Number(b.idx));
+    let used=0;
+    const chosen=[];
+    for(const page of ranked){if(used>=perPdf)break;const part=page.txt.slice(0,Math.max(0,perPdf-used-40));chosen.push({...page,txt:part});used+=part.length+40;}
+    let pdfText=chosen.sort((a,b)=>Number(a.idx)-Number(b.idx)).map(p=>`[PÁGINA ${Number(p.idx)+1}]\n${p.txt}`).join('\n\n');
+    block += '[Fragmentos seleccionados por coincidencia con la pregunta; no representan necesariamente el documento completo.]\n';
     block += pdfText.slice(0, perPdf);
     if(pdfText.length > perPdf) block += '\n[... texto recortado para optimizar uso de API ...]\n';
     ctx += block;

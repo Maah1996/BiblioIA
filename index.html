@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BiblioIA — Consultas Académicas con Inteligencia Artificial</title>
+<title>BiblioIA — Biblioteca, normativa y asistente</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
@@ -13,7 +13,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-storage-compat.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
-<link rel="stylesheet" href="styles.css?v=6">
+<link rel="stylesheet" href="styles.css?v=7">
+<link rel="stylesheet" href="professional.css?v=1">
 </head>
 <body>
 
@@ -22,7 +23,7 @@
 
 <nav class="l-nav">
   <div class="l-logo">
-    <div class="l-logo-icon">📚</div>
+    <div class="l-logo-icon"><i class="ti ti-books" aria-hidden="true"></i></div>
     <div>
       <div class="l-logo-text">BiblioIA</div>
     </div>
@@ -41,78 +42,21 @@
 <section class="hero">
   <div class="hero-particles" id="particles-container"></div>
   <div class="hero-left">
-    <div class="hero-badge"><div class="dot"></div><span>Plataforma Académica IA</span></div>
-    <h1>Consulta documentos con <em>inteligencia artificial</em></h1>
-    <p class="hero-desc">Sube tus documentos PDF, selecciona los que necesitas y haz preguntas en lenguaje natural. Obtén respuestas precisas con citas exactas de página y documento.</p>
+    <div class="hero-badge"><div class="dot"></div><span>Biblioteca · Normativa · Asistente</span></div>
+    <h1>Conocimiento organizado.<br><em>Decisiones informadas.</em></h1>
+    <p class="hero-desc">Sube tus documentos PDF, selecciona los que necesitas y haz preguntas en lenguaje natural. Analiza el contenido con un asistente y consulta sus fuentes.</p>
     <div class="hero-actions">
       <button class="btn-hero" onclick="openAuth('register')">Comenzar gratis</button>
       <button class="btn-hero-sec" onclick="openAuth('login')">Ya tengo cuenta →</button>
     </div>
     <div class="hero-stats">
-      <div class="hero-stat"><div class="val">100%</div><div class="lbl">Precisión citada</div></div>
-      <div class="hero-stat"><div class="val">∞</div><div class="lbl">Documentos</div></div>
-      <div class="hero-stat"><div class="val">24/7</div><div class="lbl">Disponible</div></div>
+      <div class="hero-stat"><div class="val">Fuentes</div><div class="lbl">Documentos de referencia</div></div>
+      <div class="hero-stat"><div class="val">Versiones</div><div class="lbl">Historial de normativa</div></div>
+      <div class="hero-stat"><div class="val">Un espacio</div><div class="lbl">Para tu conocimiento</div></div>
     </div>
   </div>
   <div class="hero-right">
-    <svg viewBox="0 0 520 440" width="480" height="400" xmlns="http://www.w3.org/2000/svg">
-      <!-- Glow background -->
-      <defs>
-        <radialGradient id="glow" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.15"/>
-          <stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/>
-        </radialGradient>
-        <filter id="blur"><feGaussianBlur stdDeviation="3"/></filter>
-      </defs>
-      <ellipse cx="260" cy="220" rx="220" ry="180" fill="url(#glow)"/>
-      <!-- Floating ring -->
-      <circle cx="260" cy="220" r="175" stroke="rgba(59,130,246,0.12)" stroke-width="1" fill="none"/>
-      <circle cx="260" cy="220" r="140" stroke="rgba(59,130,246,0.07)" stroke-width="1" fill="none"/>
-      <!-- Main document -->
-      <rect x="155" y="100" width="160" height="200" rx="10" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
-      <rect x="155" y="100" width="160" height="30" rx="10" fill="rgba(59,130,246,0.3)"/>
-      <rect x="155" y="120" width="160" height="10" rx="0" fill="rgba(59,130,246,0.3)"/>
-      <!-- Document lines -->
-      <rect x="170" y="148" width="120" height="4" rx="2" fill="rgba(255,255,255,0.3)"/>
-      <rect x="170" y="160" width="100" height="4" rx="2" fill="rgba(255,255,255,0.2)"/>
-      <rect x="170" y="172" width="115" height="4" rx="2" fill="rgba(255,255,255,0.2)"/>
-      <rect x="170" y="184" width="90" height="4" rx="2" fill="rgba(255,255,255,0.2)"/>
-      <rect x="170" y="208" width="120" height="4" rx="2" fill="rgba(255,255,255,0.3)"/>
-      <rect x="170" y="220" width="80" height="4" rx="2" fill="rgba(255,255,255,0.2)"/>
-      <rect x="170" y="232" width="110" height="4" rx="2" fill="rgba(255,255,255,0.2)"/>
-      <!-- PDF Label -->
-      <rect x="163" y="270" width="40" height="18" rx="4" fill="#ef4444" opacity="0.9"/>
-      <text x="183" y="283" text-anchor="middle" fill="white" font-size="9" font-weight="700" font-family="Inter,sans-serif">PDF</text>
-      <!-- Second doc behind -->
-      <rect x="195" y="88" width="150" height="190" rx="10" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.08)" stroke-width="1.5"/>
-      <!-- Third doc -->
-      <rect x="125" y="112" width="140" height="185" rx="10" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.08)" stroke-width="1.5"/>
-      <!-- AI Chat bubble (right) -->
-      <rect x="310" y="130" width="150" height="90" rx="12" fill="rgba(16,185,129,0.12)" stroke="rgba(16,185,129,0.4)" stroke-width="1.5"/>
-      <polygon points="310,170 295,180 312,185" fill="rgba(16,185,129,0.2)" stroke="rgba(16,185,129,0.4)" stroke-width="1.5"/>
-      <rect x="322" y="148" width="80" height="4" rx="2" fill="rgba(16,185,129,0.6)"/>
-      <rect x="322" y="160" width="110" height="4" rx="2" fill="rgba(255,255,255,0.3)"/>
-      <rect x="322" y="172" width="95" height="4" rx="2" fill="rgba(255,255,255,0.25)"/>
-      <rect x="322" y="184" width="70" height="4" rx="2" fill="rgba(255,255,255,0.2)"/>
-      <text x="325" y="215" fill="rgba(16,185,129,0.8)" font-size="9" font-weight="700" font-family="Inter,sans-serif">📄 Pág. 14 — Reglamento.pdf</text>
-      <!-- User question bubble (left) -->
-      <rect x="55" y="240" width="140" height="52" rx="10" fill="rgba(59,130,246,0.18)" stroke="rgba(59,130,246,0.4)" stroke-width="1.5"/>
-      <polygon points="195,268 210,260 193,280" fill="rgba(59,130,246,0.2)" stroke="rgba(59,130,246,0.4)" stroke-width="1.5"/>
-      <rect x="68" y="254" width="90" height="4" rx="2" fill="rgba(255,255,255,0.5)"/>
-      <rect x="68" y="266" width="110" height="4" rx="2" fill="rgba(255,255,255,0.35)"/>
-      <rect x="68" y="278" width="75" height="4" rx="2" fill="rgba(255,255,255,0.25)"/>
-      <!-- AI brain icon -->
-      <circle cx="360" cy="320" r="32" fill="rgba(245,158,11,0.1)" stroke="rgba(245,158,11,0.35)" stroke-width="1.5"/>
-      <text x="360" y="328" text-anchor="middle" font-size="26">🤖</text>
-      <!-- Connection lines -->
-      <line x1="235" y1="290" x2="310" y2="175" stroke="rgba(59,130,246,0.2)" stroke-width="1" stroke-dasharray="5,4"/>
-      <line x1="235" y1="290" x2="335" y2="317" stroke="rgba(245,158,11,0.2)" stroke-width="1" stroke-dasharray="5,4"/>
-      <!-- Floating dots -->
-      <circle cx="80" cy="140" r="4" fill="rgba(59,130,246,0.4)"/>
-      <circle cx="440" cy="200" r="3" fill="rgba(16,185,129,0.5)"/>
-      <circle cx="100" cy="360" r="5" fill="rgba(245,158,11,0.3)"/>
-      <circle cx="420" cy="350" r="4" fill="rgba(59,130,246,0.3)"/>
-    </svg>
+    <div class="product-preview"><div class="preview-kicker">BIBLIOIA / ESPACIO DE TRABAJO</div><h3>Tu conocimiento,<br>en un solo lugar.</h3><div class="preview-row"><i class="ti ti-books"></i><div><strong>Biblioteca documental</strong><p>Organiza tus fuentes por materia.</p></div><span>01</span></div><div class="preview-row"><i class="ti ti-scale"></i><div><strong>Leyes y normativa</strong><p>Versiones y cambios bajo control.</p></div><span>02</span></div><div class="preview-row"><i class="ti ti-message-2"></i><div><strong>Un asistente, todo el contexto</strong><p>Consulta, compara y comprende.</p></div><span>03</span></div></div>
   </div>
 </section>
 
@@ -122,32 +66,32 @@
   <p class="section-desc">Una plataforma diseñada para la precisión académica, con tecnología de inteligencia artificial de última generación.</p>
   <div class="feat-grid">
     <div class="feat-card">
-      <div class="feat-icon" style="background:#eff6ff;">📚</div>
+      <div class="feat-icon" style="background:#eff6ff;"><i class="ti ti-books" aria-hidden="true"></i></div>
       <h3>Biblioteca organizada</h3>
       <p>Accede a todos los documentos organizados por categoría. Busca, filtra y selecciona exactamente lo que necesitas consultar.</p>
     </div>
     <div class="feat-card">
-      <div class="feat-icon" style="background:#f0fdf4;">🎯</div>
+      <div class="feat-icon" style="background:#f0fdf4;"><i class="ti ti-target" aria-hidden="true"></i></div>
       <h3>Respuestas precisas con citas</h3>
-      <p>La IA solo responde basándose en los documentos seleccionados. Cada respuesta incluye el documento y número de página exacto.</p>
+      <p>Consulta tus documentos y revisa las referencias que acompañan las respuestas del asistente.</p>
     </div>
     <div class="feat-card">
-      <div class="feat-icon" style="background:#fffbeb;">⚡</div>
-      <h3>Respuesta instantánea</h3>
-      <p>Obtén respuestas en segundos en lugar de buscar manualmente entre decenas de páginas de documentos.</p>
+      <div class="feat-icon" style="background:#fffbeb;"><i class="ti ti-bolt" aria-hidden="true"></i></div>
+      <h3>Análisis asistido</h3>
+      <p>Encuentra pasajes relevantes y explora tus documentos mediante preguntas.</p>
     </div>
     <div class="feat-card">
-      <div class="feat-icon" style="background:#fef2f2;">🔒</div>
+      <div class="feat-icon" style="background:#fef2f2;"><i class="ti ti-lock" aria-hidden="true"></i></div>
       <h3>Acceso controlado</h3>
       <p>Sistema de membresía que garantiza que solo los estudiantes autorizados accedan al contenido de la plataforma.</p>
     </div>
     <div class="feat-card">
-      <div class="feat-icon" style="background:#f5f3ff;">📝</div>
+      <div class="feat-icon" style="background:#f5f3ff;"><i class="ti ti-notes" aria-hidden="true"></i></div>
       <h3>Historial de consultas</h3>
       <p>Todas tus consultas quedan guardadas. Vuelve a revisar respuestas anteriores cuando lo necesites.</p>
     </div>
     <div class="feat-card">
-      <div class="feat-icon" style="background:#ecfdf5;">🌐</div>
+      <div class="feat-icon" style="background:#ecfdf5;"><i class="ti ti-world" aria-hidden="true"></i></div>
       <h3>Siempre disponible</h3>
       <p>Accede desde cualquier dispositivo, en cualquier momento. Tu biblioteca de estudio siempre está a un clic.</p>
     </div>
@@ -182,16 +126,16 @@
   <h2 class="section-title">Acceso mediante membresía</h2>
   <p class="section-desc">Solicita acceso al administrador para obtener tu membresía y comenzar a consultar.</p>
   <div class="price-highlight">Membresía</div>
-  <p class="price-detail">Acceso completo a toda la biblioteca · Consultas ilimitadas · Historial guardado</p>
+  <p class="price-detail">Acceso completo a toda la biblioteca · Asistente integrado · Historial guardado</p>
   <button class="btn-hero" onclick="openAuth('register')" style="margin:0 auto;">Solicitar acceso →</button>
 </section>
 
 <footer>
   <div class="l-logo">
-    <div class="l-logo-icon" style="width:28px;height:28px;font-size:14px;">📚</div>
+    <div class="l-logo-icon" style="width:28px;height:28px;font-size:14px;"><i class="ti ti-books" aria-hidden="true"></i></div>
     <span class="l-logo-text" style="font-size:16px;">BiblioIA</span>
   </div>
-  <p class="copy">© 2026 BiblioIA — Plataforma Académica con IA</p>
+  <p class="copy">© 2026 BiblioIA — Biblioteca y conocimiento</p>
 </footer>
 
 </div><!-- /landing -->
@@ -201,7 +145,7 @@
   <div class="modal-box">
     <button class="modal-close" onclick="closeAuth()">✕</button>
     <div class="modal-logo">
-      <div class="ico">📚</div>
+      <div class="ico"><i class="ti ti-books" aria-hidden="true"></i></div>
       <div class="txt">BiblioIA</div>
     </div>
 
@@ -235,14 +179,14 @@
 
 <!-- BARRA PREVIEW -->
 <div id="preview-bar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9998;background:linear-gradient(90deg,#d97706,#f59e0b);padding:10px 24px;display:none;align-items:center;gap:16px;box-shadow:0 2px 12px rgba(0,0,0,.2);">
-  <span style="font-size:18px;">👁</span>
+  <span style="font-size:18px;"><i class="ti ti-eye" aria-hidden="true"></i></span>
   <span style="font-size:13px;font-weight:700;color:#fff;flex:1;">Modo vista previa — estás viendo la app como la verían los usuarios</span>
   <button onclick="salirPreview()" style="padding:7px 20px;background:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;color:#d97706;cursor:pointer;">✕ Volver al admin</button>
 </div>
 
   <div class="app-topbar">
     <div class="top-logo">
-      <div class="ico">📚</div>
+      <div class="ico"><i class="ti ti-books" aria-hidden="true"></i></div>
       <div class="txt">BiblioIA</div>
     </div>
     <div class="top-user">
@@ -260,7 +204,7 @@
       <div id="nav-admin" style="display:none;">
         <div class="sidebar-label">Administración</div>
         <div class="nav-item active" data-view="dashboard" onclick="goTo('dashboard')">
-          <span class="ni-icon"><i class="ti ti-layout-dashboard"></i></span><span class="ni-text">Dashboard</span>
+          <span class="ni-icon"><i class="ti ti-layout-dashboard"></i></span><span class="ni-text">Inicio</span>
         </div>
         <div class="nav-item" data-view="biblioteca-admin" onclick="goTo('biblioteca-admin')">
           <span class="ni-icon"><i class="ti ti-books"></i></span><span class="ni-text">Biblioteca</span>
@@ -285,18 +229,19 @@
         </div>
         <div style="border-top:1px solid rgba(255,255,255,.06);margin:8px 0 4px;"></div>
         <div onclick="entrarPreview()" style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:var(--radius-s);cursor:pointer;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.25);margin:0 8px 8px;transition:var(--tr);" onmouseenter="this.style.background='rgba(245,158,11,.22)'" onmouseleave="this.style.background='rgba(245,158,11,.12)'">
-          <span style="font-size:16px;">👁</span>
+          <span style="font-size:16px;"><i class="ti ti-eye" aria-hidden="true"></i></span>
           <span style="font-size:12px;font-weight:700;color:var(--gold);">Vista previa usuario</span>
         </div>
       </div>
       <!-- User nav -->
       <div id="nav-user">
-        <div class="sidebar-label">Consultas</div>
+        <div class="sidebar-label">Espacio de trabajo</div>
+        <div class="nav-item" data-view="leyes" onclick="goTo('leyes')"><span class="ni-icon"><i class="ti ti-scale"></i></span><span class="ni-text">Leyes y normativa</span></div>
         <div class="nav-item" data-view="biblioteca-user" onclick="goTo('biblioteca-user')">
           <span class="ni-icon"><i class="ti ti-library"></i></span><span class="ni-text">Biblioteca</span>
         </div>
         <div class="nav-item" data-view="consultar" onclick="goTo('consultar')">
-          <span class="ni-icon"><i class="ti ti-message-2"></i></span><span class="ni-text">Consultar</span>
+          <span class="ni-icon"><i class="ti ti-message-2"></i></span><span class="ni-text">Asistente IA</span>
         </div>
         <div class="nav-item" data-view="historial" onclick="goTo('historial')">
           <span class="ni-icon"><i class="ti ti-history"></i></span><span class="ni-text">Historial</span>
@@ -314,32 +259,32 @@
       <!-- ── DASHBOARD (admin) ─────────────────────── -->
       <div class="view active" id="view-dashboard">
         <div class="page-header">
-          <h2>Dashboard</h2>
-          <p>Resumen general de la plataforma</p>
+          <h2>Tu espacio de conocimiento</h2>
+          <p>Documentos y normativa conectados a un único asistente.</p>
         </div>
         <div class="stats-grid">
-          <div class="stat-box"><div class="sb-icon">📄</div><div class="sb-val" id="stat-pdfs">0</div><div class="sb-lbl">PDFs en biblioteca</div></div>
-          <div class="stat-box"><div class="sb-icon">👥</div><div class="sb-val" id="stat-users">0</div><div class="sb-lbl">Usuarios registrados</div></div>
-          <div class="stat-box"><div class="sb-icon">💬</div><div class="sb-val" id="stat-queries">0</div><div class="sb-lbl">Consultas totales</div></div>
-          <div class="stat-box"><div class="sb-icon">✅</div><div class="sb-val" id="stat-active">0</div><div class="sb-lbl">Miembros activos</div></div>
+          <div class="stat-box"><div class="sb-icon"><i class="ti ti-file-text" aria-hidden="true"></i></div><div class="sb-val" id="stat-pdfs">0</div><div class="sb-lbl">PDFs en biblioteca</div></div>
+          <div class="stat-box"><div class="sb-icon"><i class="ti ti-users" aria-hidden="true"></i></div><div class="sb-val" id="stat-users">0</div><div class="sb-lbl">Usuarios registrados</div></div>
+          <div class="stat-box"><div class="sb-icon"><i class="ti ti-message-2" aria-hidden="true"></i></div><div class="sb-val" id="stat-queries">0</div><div class="sb-lbl">Consultas totales</div></div>
+          <div class="stat-box"><div class="sb-icon"><i class="ti ti-check" aria-hidden="true"></i></div><div class="sb-val" id="stat-active">0</div><div class="sb-lbl">Miembros activos</div></div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
           <div class="card">
-            <div class="card-title">⚡ Acciones rápidas</div>
+            <div class="card-title"><i class="ti ti-bolt" aria-hidden="true"></i> Acciones rápidas</div>
             <div style="display:flex;flex-direction:column;gap:10px;">
-              <button class="btn-sm btn-blue" style="text-align:left;padding:12px 16px;border-radius:var(--radius-s);font-size:13px;" onclick="goTo('subir-pdf')">⬆️ Subir nuevo PDF</button>
-              <button class="btn-sm btn-gray" style="text-align:left;padding:12px 16px;border-radius:var(--radius-s);font-size:13px;" onclick="goTo('usuarios')">👥 Gestionar usuarios</button>
+              <button class="btn-sm btn-blue" style="text-align:left;padding:12px 16px;border-radius:var(--radius-s);font-size:13px;" onclick="goTo('subir-pdf')"><i class="ti ti-upload" aria-hidden="true"></i> Subir nuevo PDF</button>
+              <button class="btn-sm btn-gray" style="text-align:left;padding:12px 16px;border-radius:var(--radius-s);font-size:13px;" onclick="goTo('usuarios')"><i class="ti ti-users" aria-hidden="true"></i> Gestionar usuarios</button>
             </div>
           </div>
           <div class="card">
-            <div class="card-title">📋 Últimas consultas</div>
+            <div class="card-title"><i class="ti ti-clipboard" aria-hidden="true"></i> Últimas consultas</div>
             <div id="dash-last-queries"><div class="empty-state"><p>Sin consultas aún</p></div></div>
           </div>
         </div>
-        <div class="card" style="margin-top:20px;border:2px dashed var(--border);">
-          <div class="card-title">🔧 Mantenimiento (temporal)</div>
-          <p style="font-size:12px;color:var(--text-g);margin:0 0 10px;">Un solo clic: mueve el texto de los PDFs subidos antes de hoy a un lugar aparte, para que la biblioteca cargue más rápido al cambiar de pantalla. Seguro de repetir. Se quitará este botón una vez confirmado.</p>
-          <button class="btn-sm btn-blue" id="btn-migrar-texto" onclick="migrarTextosPdfs()">🔧 Migrar texto de PDFs antiguos</button>
+        <div class="workspace-modules">
+          <button onclick="goTo('biblioteca-admin')"><i class="ti ti-books"></i><strong>Biblioteca</strong><span>Organiza documentos y materiales de estudio.</span><small>Explorar documentos →</small></button>
+          <button onclick="goTo('leyes')"><i class="ti ti-scale"></i><strong>Leyes y normativa</strong><span>Revisa fuentes, versiones y actualizaciones.</span><small>Abrir normativa →</small></button>
+          <button onclick="goTo('consultar')"><i class="ti ti-message-2"></i><strong>Asistente IA</strong><span>Consulta documentos, leyes e imágenes.</span><small>Iniciar consulta →</small></button>
         </div>
       </div>
 
@@ -351,11 +296,11 @@
         </div>
         <div class="card">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
-            <div class="card-title" style="margin:0;">📄 Documentos (<span id="admin-pdf-count">0</span>)</div>
-            <button class="btn-sm btn-blue" onclick="goTo('subir-pdf')">⬆️ Subir nuevo</button>
+            <div class="card-title" style="margin:0;"><i class="ti ti-file-text" aria-hidden="true"></i> Documentos (<span id="admin-pdf-count">0</span>)</div>
+            <button class="btn-sm btn-blue" onclick="goTo('subir-pdf')"><i class="ti ti-upload" aria-hidden="true"></i> Subir nuevo</button>
           </div>
           <div id="admin-pdf-list">
-            <div class="empty-state"><div class="es-icon">📂</div><p>No hay documentos.<br>Sube el primer PDF.</p></div>
+            <div class="empty-state"><div class="es-icon"><i class="ti ti-folder" aria-hidden="true"></i></div><p>No hay documentos.<br>Sube el primer PDF.</p></div>
           </div>
         </div>
       </div>
@@ -380,7 +325,7 @@
                ondragover="event.preventDefault();this.classList.add('drag-over')"
                ondragleave="this.classList.remove('drag-over')"
                ondrop="handleDrop(event)">
-            <div class="uz-icon" id="uz-icon">📂</div>
+            <div class="uz-icon" id="uz-icon"><i class="ti ti-folder" aria-hidden="true"></i></div>
             <h3 id="uz-title">Arrastra tus PDFs aquí</h3>
             <p id="uz-sub">o haz clic para seleccionar · Puedes soltar varios a la vez · máx. 50 MB c/u</p>
           </div>
@@ -407,7 +352,7 @@
 
           <!-- Botón subir -->
           <div style="margin-top:20px;display:flex;gap:12px;align-items:center;">
-            <button class="btn-sm btn-blue" id="btn-upload" onclick="uploadPDF()" style="padding:12px 28px;font-size:14px;font-weight:700;">⬆️ Procesar y subir</button>
+            <button class="btn-sm btn-blue" id="btn-upload" onclick="uploadPDF()" style="padding:12px 28px;font-size:14px;font-weight:700;"><i class="ti ti-upload" aria-hidden="true"></i> Procesar y subir</button>
             <span id="upload-result" style="font-size:13px;font-weight:600;"></span>
           </div>
         </div>
@@ -429,7 +374,7 @@
         <div id="panel-acceso-carpetas" style="display:none;" class="card" style="margin-top:16px;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
             <div>
-              <div class="card-title" style="margin:0;">📂 Acceso a carpetas — <span id="panel-acceso-nombre" style="color:var(--blue-l);"></span></div>
+              <div class="card-title" style="margin:0;"><i class="ti ti-folder" aria-hidden="true"></i> Acceso a carpetas — <span id="panel-acceso-nombre" style="color:var(--blue-l);"></span></div>
               <div style="font-size:12px;color:var(--text-g);margin-top:3px;">Marca las carpetas a las que tendrá acceso. Sin selección = acceso total.</div>
             </div>
             <button onclick="cerrarPanelAcceso()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-g);">✕</button>
@@ -449,7 +394,7 @@
           <p>Crea y gestiona las carpetas para organizar los documentos</p>
         </div>
         <div class="card" style="max-width:600px;margin-bottom:24px;">
-          <div class="card-title">📁 Nueva materia</div>
+          <div class="card-title"><i class="ti ti-folder" aria-hidden="true"></i> Nueva materia</div>
           <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
             <div class="field-group" style="flex:1;min-width:160px;">
               <label>Nombre de la carpeta</label>
@@ -458,7 +403,7 @@
             <div class="field-group">
               <label>Ícono</label>
               <select id="materia-icono" style="padding:10px 13px;border:1.5px solid var(--border);border-radius:var(--radius-s);font-size:20px;outline:none;">
-                <option value="📚">📚</option>
+                <option value="📚"><i class="ti ti-books" aria-hidden="true"></i></option>
                 <option value="📐">📐</option>
                 <option value="🔬">🔬</option>
                 <option value="🌍">🌍</option>
@@ -475,7 +420,7 @@
             <div class="field-group" style="min-width:180px;">
               <label>Carpeta padre (opcional)</label>
               <select id="materia-padre" style="padding:10px 13px;border:1.5px solid var(--border);border-radius:var(--radius-s);font-size:13px;outline:none;width:100%;">
-                <option value="">📁 Raíz (sin carpeta padre)</option>
+                <option value=""><i class="ti ti-folder" aria-hidden="true"></i> Raíz (sin carpeta padre)</option>
               </select>
             </div>
             <button class="btn-sm btn-blue" onclick="crearMateria()" style="padding:11px 20px;font-size:13px;white-space:nowrap;">+ Crear carpeta</button>
@@ -483,7 +428,7 @@
         </div>
         <div class="card">
           <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-            <span>📂 Carpetas creadas (<span id="materias-count">0</span>)</span>
+            <span><i class="ti ti-folder" aria-hidden="true"></i> Carpetas creadas (<span id="materias-count">0</span>)</span>
             <span style="display:flex;gap:8px;">
               <button class="btn-sm btn-gray" onclick="seleccionarTodasMaterias()" style="padding:5px 10px;font-size:12px;">☑️ Seleccionar todas</button>
               <button class="btn-sm btn-gray" onclick="deseleccionarTodasMaterias()" style="padding:5px 10px;font-size:12px;">Ninguna</button>
@@ -492,12 +437,12 @@
           <div id="materias-mover-bar" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;background:#f0f6ff;border:1.5px solid var(--blue-l);border-radius:var(--radius);padding:12px 16px;margin-bottom:12px;">
             <span style="font-size:13px;font-weight:600;color:var(--navy);white-space:nowrap;"><span id="materias-mover-count">0</span> carpeta(s) seleccionada(s)</span>
             <select id="materias-mover-destino" style="flex:1;min-width:180px;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;outline:none;">
-              <option value="">📁 Raíz (sin carpeta padre)</option>
+              <option value=""><i class="ti ti-folder" aria-hidden="true"></i> Raíz (sin carpeta padre)</option>
             </select>
             <button class="btn-sm btn-blue" onclick="moverMateriasSeleccionadas()" style="padding:8px 16px;font-size:13px;white-space:nowrap;">📤 Mover aquí</button>
             <button class="btn-sm btn-gray" onclick="deseleccionarTodasMaterias()" style="padding:8px 12px;font-size:13px;">✕ Cancelar</button>
           </div>
-          <div id="materias-list"><div class="empty-state"><div class="es-icon">📁</div><p>No hay materias aún.<br>Crea la primera carpeta arriba.</p></div></div>
+          <div id="materias-list"><div class="empty-state"><div class="es-icon"><i class="ti ti-folder" aria-hidden="true"></i></div><p>No hay materias aún.<br>Crea la primera carpeta arriba.</p></div></div>
         </div>
       </div>
 
@@ -582,12 +527,12 @@
         </div>
         <!-- Info banco -->
         <div id="banco-info" style="display:none;margin-bottom:16px;display:none;align-items:center;gap:12px;flex-wrap:wrap;">
-          <span class="quiz-banco-badge" id="banco-total">📚 0 preguntas</span>
+          <span class="quiz-banco-badge" id="banco-total"><i class="ti ti-books" aria-hidden="true"></i> 0 preguntas</span>
           <button class="btn-sm btn-red" onclick="limpiarBanco()" style="padding:7px 16px;font-size:12px;">🗑️ Limpiar banco de este PDF</button>
         </div>
         <!-- Lista preguntas -->
         <div id="banco-lista">
-          <div class="empty-state"><div class="es-icon">📝</div><p>Selecciona un documento para ver sus preguntas.</p></div>
+          <div class="empty-state"><div class="es-icon"><i class="ti ti-notes" aria-hidden="true"></i></div><p>Selecciona un documento para ver sus preguntas.</p></div>
         </div>
       </div>
 
@@ -596,6 +541,11 @@
         <div class="page-header">
           <h2>Ajustes</h2>
           <p>Configuración de la plataforma</p>
+        </div>
+        <div class="card" style="margin-top:20px;border:2px dashed var(--border);">
+          <div class="card-title"><i class="ti ti-tool" aria-hidden="true"></i> Mantenimiento de datos</div>
+          <p style="font-size:12px;color:var(--text-g);margin:0 0 10px;">Organiza el almacenamiento de documentos antiguos para mejorar la carga de la biblioteca.</p>
+          <button class="btn-sm btn-blue" id="btn-migrar-texto" onclick="migrarTextosPdfs()"><i class="ti ti-tool" aria-hidden="true"></i> Migrar texto de PDFs antiguos</button>
         </div>
         <div class="card" style="max-width:560px;">
           <div class="card-title">🔑 Clave API de Claude (IA)</div>
@@ -626,7 +576,7 @@
         <!-- Vista carpetas -->
         <div id="lib-carpetas-view">
           <div id="lib-carpetas-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;">
-            <div class="empty-state"><div class="es-icon">📂</div><p>Cargando materias...</p></div>
+            <div class="empty-state"><div class="es-icon"><i class="ti ti-folder" aria-hidden="true"></i></div><p>Cargando materias...</p></div>
           </div>
         </div>
         <!-- Vista contenido dentro de carpeta -->
@@ -634,7 +584,7 @@
           <button id="lib-volver-btn" onclick="volverCarpetas()" style="display:inline-flex;align-items:center;gap:8px;margin-bottom:20px;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-s);padding:8px 16px;font-size:13px;font-weight:600;color:var(--navy);cursor:pointer;">← Volver a materias</button>
           <!-- Pestañas -->
           <div style="display:flex;gap:0;margin-bottom:24px;border-bottom:2px solid var(--border);">
-            <button id="tab-pdfs" onclick="switchLibTab('pdfs')" style="padding:10px 24px;border:none;background:none;font-size:14px;font-weight:700;color:var(--blue);border-bottom:3px solid var(--blue);margin-bottom:-2px;cursor:pointer;">📄 Documentos</button>
+            <button id="tab-pdfs" onclick="switchLibTab('pdfs')" style="padding:10px 24px;border:none;background:none;font-size:14px;font-weight:700;color:var(--blue);border-bottom:3px solid var(--blue);margin-bottom:-2px;cursor:pointer;"><i class="ti ti-file-text" aria-hidden="true"></i> Documentos</button>
             <button id="tab-audios" onclick="switchLibTab('audios')" style="padding:10px 24px;border:none;background:none;font-size:14px;font-weight:600;color:var(--text-g);border-bottom:3px solid transparent;margin-bottom:-2px;cursor:pointer;">🎵 Audios</button>
           </div>
           <!-- Documentos PDF -->
@@ -654,43 +604,45 @@
       <!-- ── CONSULTAR ─────────────────────────────── -->
       <div class="view" id="view-consultar">
         <div class="page-header">
-          <h2>Consultar documentos</h2>
-          <p>Selecciona los documentos y escribe tu pregunta</p>
+          <h2>Asistente IA</h2>
+          <p>Un espacio para estudiar, analizar documentos y consultar normativa.</p>
         </div>
         <div class="query-layout">
           <div>
             <div class="pdf-selector">
-              <div class="pdf-selector-head">📁 Carpeta</div>
+              <div class="pdf-selector-head"><i class="ti ti-folder" aria-hidden="true"></i> Carpeta</div>
               <div id="consultar-carpeta-explorer" style="border-bottom:1px solid var(--border);max-height:280px;overflow-y:auto;">
                 <div style="padding:20px;text-align:center;color:var(--text-g);font-size:13px;">Cargando...</div>
               </div>
-              <div class="pdf-selector-head" id="consultar-docs-head" style="border-top:none;">📄 Documentos</div>
+              <div class="pdf-selector-head" id="consultar-docs-head" style="border-top:none;"><i class="ti ti-file-text" aria-hidden="true"></i> Documentos</div>
               <div id="pdf-selector-list" style="max-height:260px;overflow-y:auto;">
                 <div style="padding:20px;text-align:center;color:var(--text-g);font-size:13px;">Cargando...</div>
               </div>
             </div>
             <div style="margin-top:10px;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:var(--radius-s);">
-              <div style="font-size:11px;font-weight:700;color:var(--gold-d);margin-bottom:4px;">⚠️ Precisión máxima</div>
-              <div style="font-size:11px;color:#92400e;line-height:1.5;">Las respuestas se basan únicamente en los documentos seleccionados. Si la respuesta no está en los documentos, se indica explícitamente.</div>
+              <div style="font-size:11px;font-weight:700;color:var(--gold-d);margin-bottom:4px;">Fuentes y alcance</div>
+              <div style="font-size:11px;color:#92400e;line-height:1.5;">Comprueba las citas y la versión de tus fuentes. El asistente distingue el material seleccionado de las fuentes externas.</div>
             </div>
           </div>
           <div class="chat-area" id="chat-area">
             <div class="chat-head">
-              <span style="font-size:20px;">🤖</span>
+              <span style="font-size:20px;"><i class="ti ti-sparkles" aria-hidden="true"></i></span>
               <div>
-                <h3>Asistente Académico</h3>
-                <div style="font-size:11px;color:var(--text-g);">Responde solo desde los documentos seleccionados</div>
+                <h3>Asistente BiblioIA</h3>
+                <div style="font-size:11px;color:var(--text-g);">Documentos, normativa y consultas generales</div>
               </div>
             </div>
             <div class="chat-messages" id="chat-messages">
-              <div class="msg msg-ai">Hola, soy tu asistente académico. Selecciona uno o más documentos de la izquierda y luego escribe tu pregunta. Responderé con citas exactas de página y documento.</div>
+              <div class="msg msg-ai">¿En qué estás trabajando? Haz una pregunta general o selecciona documentos para analizarlos. Puedes adjuntar una imagen de un ejercicio, una tabla o tus apuntes.</div>
             </div>
             <div class="chat-input-area">
+              <div id="assistant-context" class="context-strip">Consulta general · Puedes seleccionar documentos como fuentes.</div>
+              <div id="image-previews" class="image-previews"></div>
               <div class="chat-input-row">
                 <textarea id="chat-input" rows="2" placeholder="Escribe tu pregunta aquí..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendQuery();}"></textarea>
                 <button class="btn-send" id="btn-send" onclick="sendQuery()">Enviar ↑</button>
               </div>
-              <div class="chat-hint">Enter para enviar · Shift+Enter para nueva línea</div>
+              <div class="composer-tools"><label class="btn-sm btn-gray" for="chat-images"><i class="ti ti-photo"></i> Adjuntar imagen</label><input id="chat-images" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden><button class="btn-sm btn-gray" onclick="resetAssistant()">Nueva conversación</button><span class="chat-hint">Pega una imagen con Ctrl+V</span></div>
             </div>
           </div>
         </div>
@@ -703,14 +655,14 @@
           <p>Todas tus preguntas y respuestas guardadas</p>
         </div>
         <div id="historial-list">
-          <div class="empty-state"><div class="es-icon">💬</div><p>Aún no tienes consultas.<br>Ve a Consultar para comenzar.</p></div>
+          <div class="empty-state"><div class="es-icon"><i class="ti ti-message-2" aria-hidden="true"></i></div><p>Aún no tienes consultas.<br>Ve a Consultar para comenzar.</p></div>
         </div>
       </div>
 
       <!-- ── CUESTIONARIO ──────────────────────────── -->
       <div class="view" id="view-cuestionario">
         <div id="quiz-recommend" style="display:none;max-width:560px;margin:0 auto;padding:40px 20px;text-align:center;">
-          <div style="font-size:52px;margin-bottom:16px;">📚</div>
+          <div style="font-size:52px;margin-bottom:16px;"><i class="ti ti-books" aria-hidden="true"></i></div>
           <div style="font-size:20px;font-weight:800;color:var(--navy);margin-bottom:10px;" id="qr-titulo">Banco de preguntas</div>
           <div style="font-size:14px;color:var(--text-g);line-height:1.7;margin-bottom:28px;" id="qr-desc"></div>
           <div style="background:linear-gradient(135deg,#eff6ff,#f0fdf4);border:1px solid #bfdbfe;border-radius:12px;padding:20px 24px;margin-bottom:28px;text-align:left;" id="qr-info"></div>
@@ -736,7 +688,7 @@
                 <div style="font-size:11px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Cuestionario</div>
                 <div style="font-size:18px;font-weight:700;" id="quiz-pdf-nombre">—</div>
                 <div style="margin-top:8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-                  <span class="quiz-banco-badge" id="quiz-banco-info">📚 Banco: 0 preguntas</span>
+                  <span class="quiz-banco-badge" id="quiz-banco-info"><i class="ti ti-books" aria-hidden="true"></i> Banco: 0 preguntas</span>
                 </div>
               </div>
               <div style="text-align:center;">
@@ -749,7 +701,7 @@
           </div>
           <div id="quiz-questions-list"></div>
           <div style="margin-top:24px;display:flex;gap:12px;align-items:center;">
-            <button class="btn-sm btn-blue" onclick="enviarCuestionario()" style="padding:13px 32px;font-size:14px;font-weight:700;">✅ Enviar respuestas</button>
+            <button class="btn-sm btn-blue" onclick="enviarCuestionario()" style="padding:13px 32px;font-size:14px;font-weight:700;"><i class="ti ti-check" aria-hidden="true"></i> Enviar respuestas</button>
             <button class="btn-sm btn-gray" onclick="goTo('biblioteca-user')" style="padding:13px 24px;font-size:13px;">Cancelar</button>
           </div>
         </div>
@@ -850,6 +802,7 @@
 </div>
 
 <!-- ═══════════════════ JAVASCRIPT ════════════════════ -->
-<script src="app.js?v=20"></script>
+<script src="app.js?v=21"></script>
+<script src="legislation.js?v=1"></script>
 </body>
 </html>

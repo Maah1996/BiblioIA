@@ -2,26 +2,20 @@
   "rules": {
     ".read": false,
     ".write": false,
-
     "biblioteca_maah": {
       ".read": false,
       ".write": false,
-
       "config": {
         "claudeKey": {
           ".read": "auth != null && auth.token.email === 'marcoaraya1973@gmail.com'",
           ".write": "auth != null && auth.token.email === 'marcoaraya1973@gmail.com'"
         }
       },
-
       "usuarios": {
         ".read": "auth != null && auth.token.email === 'marcoaraya1973@gmail.com'",
-
         "$uid": {
           ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'marcoaraya1973@gmail.com')",
-
           ".write": "auth != null && (auth.token.email === 'marcoaraya1973@gmail.com' || (auth.uid === $uid && !data.exists()))",
-
           "nombre": {
             ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 120"
           },
@@ -46,31 +40,25 @@
           }
         }
       },
-
       "materias": {
         ".read": "auth != null && (root.child('biblioteca_maah/usuarios/'+auth.uid+'/plan').val() === 'activo' || auth.token.email === 'marcoaraya1973@gmail.com')",
         ".write": "auth != null && auth.token.email === 'marcoaraya1973@gmail.com'"
       },
-
       "pdfs": {
         ".read": "auth != null && (root.child('biblioteca_maah/usuarios/'+auth.uid+'/plan').val() === 'activo' || auth.token.email === 'marcoaraya1973@gmail.com')",
         ".write": "auth != null && auth.token.email === 'marcoaraya1973@gmail.com'"
       },
-
       "pdfs_texto": {
         ".read": "auth != null && (root.child('biblioteca_maah/usuarios/'+auth.uid+'/plan').val() === 'activo' || auth.token.email === 'marcoaraya1973@gmail.com')",
         ".write": "auth != null && auth.token.email === 'marcoaraya1973@gmail.com'"
       },
-
       "audios": {
         ".read": "auth != null && (root.child('biblioteca_maah/usuarios/'+auth.uid+'/plan').val() === 'activo' || auth.token.email === 'marcoaraya1973@gmail.com')",
         ".write": "auth != null && auth.token.email === 'marcoaraya1973@gmail.com'"
       },
-
       "cuestionarios": {
         ".read": "auth != null && (root.child('biblioteca_maah/usuarios/'+auth.uid+'/plan').val() === 'activo' || auth.token.email === 'marcoaraya1973@gmail.com')",
         ".write": "auth != null && auth.token.email === 'marcoaraya1973@gmail.com'",
-
         "$pdfId": {
           "preguntas": {
             "$qId": {
@@ -79,13 +67,51 @@
           }
         }
       },
-
       "consultas": {
         ".read": "auth != null && auth.token.email === 'marcoaraya1973@gmail.com'",
-
         "$uid": {
           ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'marcoaraya1973@gmail.com')",
           ".write": "auth != null && (auth.uid === $uid || auth.token.email === 'marcoaraya1973@gmail.com')"
+        }
+      },
+      "leyes": {
+        ".read": "auth != null && (root.child('biblioteca_maah/usuarios/'+auth.uid+'/plan').val() === 'activo' || auth.token.email === 'marcoaraya1973@gmail.com')",
+        "$id": {
+          ".write": "auth != null && auth.token.email === 'marcoaraya1973@gmail.com' && newData.exists()",
+          ".validate": "newData.hasChildren(['nombre','numero','pais','creadoPor'])",
+          "nombre": {
+            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200"
+          },
+          "versionActual": {
+            ".validate": "newData.isString() && root.child('biblioteca_maah/ley_versiones/'+$id+'/'+newData.val()+'/tipo').val() === 'completo'"
+          }
+        }
+      },
+      "ley_versiones": {
+        "$law": {
+          ".read": "auth != null && (root.child('biblioteca_maah/usuarios/'+auth.uid+'/plan').val() === 'activo' || auth.token.email === 'marcoaraya1973@gmail.com')",
+          "$version": {
+            ".write": "auth != null && auth.token.email === 'marcoaraya1973@gmail.com' && !data.exists() && newData.exists()",
+            ".validate": "newData.hasChildren(['texto','tipo','fechaRegistro','archivo','publicacion','vigencia','fuente'])",
+            "tipo": {
+              ".validate": "newData.val() === 'completo' || newData.val() === 'modificacion'"
+            },
+            "fuente": {
+              ".validate": "newData.isString() && newData.val().beginsWith('https://')"
+            },
+            "texto": {
+              ".validate": "newData.hasChildren()"
+            }
+          }
+        }
+      },
+      "ley_archivos": {
+        "$law": {
+          "$version": {
+            ".read": "auth != null && (root.child('biblioteca_maah/usuarios/'+auth.uid+'/plan').val() === 'activo' || auth.token.email === 'marcoaraya1973@gmail.com')",
+            ".write": "auth != null && auth.token.email === 'marcoaraya1973@gmail.com' && !data.exists() && newData.exists()",
+            ".validate": "newData.isString() && newData.val().length < 12000000"
+          }
         }
       }
     }
